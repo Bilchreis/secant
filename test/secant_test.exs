@@ -1,8 +1,11 @@
 defmodule SecantTest do
   use ExUnit.Case
-  doctest Secant
 
-  test "greets the world" do
-    assert Secant.hello() == :world
+  test "version is a string" do
+    assert is_binary(Secant.version())
+  end
+
+  test "firmware includes version" do
+    assert Secant.firmware() =~ "secant"
   end
 end
