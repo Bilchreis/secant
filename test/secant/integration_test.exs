@@ -39,7 +39,8 @@ defmodule Secant.IntegrationTest do
       equipment_id: "test_node_#{:rand.uniform(10_000)}",
       description: "Integration test node",
       port: @port,
-      modules: [{"temp", TempModule}]
+      modules: [{"temp", TempModule}],
+      discovery: false
     ]
 
     pid = start_supervised!({Secant.Node, node_opts})

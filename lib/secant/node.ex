@@ -10,7 +10,12 @@ defmodule Secant.Node do
           description: "My SEC node",
           port: 10767,
           modules: [{"temp", MyTempModule}],
-          properties: [_facility: "PSI"]
+          properties: [_facility: "PSI"],
+
+          # UDP discovery options (all optional):
+          discovery: true,            # default true — set false to disable
+          discovery_port: 10767,      # UDP port (default 10767)
+          startup_broadcast: true     # broadcast on startup (default true)
         ]}
       ]
   """
@@ -34,6 +39,9 @@ defmodule Secant.Node do
     port = Keyword.get(opts, :port, 10767)
     modules = Keyword.get(opts, :modules, [])
     raw_properties = Keyword.get(opts, :properties, [])
+    discovery_enabled = Keyword.get(opts, :discovery, true)
+    discovery_port = Keyword.get(opts, :discovery_port, 10767)
+    startup_broadcast = Keyword.get(opts, :startup_broadcast, true)
 
     node_name = String.to_atom(equipment_id)
     node_properties = validate_and_encode_node_properties!(raw_properties)
@@ -58,10 +66,26 @@ defmodule Secant.Node do
         }
       end)
 
+    discovery_children =
+      if discovery_enabled do
+        discovery_opts = %{
+          equipment_id: equipment_id,
+          description: description,
+          tcp_port: port,
+          discovery_port: discovery_port,
+          startup_broadcast: startup_broadcast
+        }
+
+        [%{id: {Secant.Discovery, equipment_id}, start: {Secant.Discovery, :start_link, [discovery_opts]}}]
+      else
+        []
+      end
+
     children =
       [{Secant.Dispatcher, dispatcher_opts}] ++
         module_children ++
-        [Secant.TCPServer.child_spec(port: port, node_name: node_name)]
+        [Secant.TCPServer.child_spec(port: port, node_name: node_name)] ++
+        discovery_children
 
     Supervisor.init(children, strategy: :one_for_one)
   end
