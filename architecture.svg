@@ -1,0 +1,251 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 780" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#555"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#d97706"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="1" stdDeviation="2" flood-color="#00000022"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1060" height="780" fill="#f8fafc" rx="8"/>
+
+  <!-- Title -->
+  <text x="530" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#1e293b">Secant — Architecture Overview</text>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEFT PANEL: Supervision Tree
+       ══════════════════════════════════════════════════════════ -->
+  <text x="20" y="62" font-size="13" font-weight="bold" fill="#64748b">SUPERVISION TREE</text>
+
+  <!-- Secant.Application -->
+  <rect x="20" y="72" width="220" height="36" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="130" y="94" text-anchor="middle" font-weight="bold" fill="#0284c7">Secant.Application</text>
+
+  <!-- arrow down -->
+  <line x1="130" y1="108" x2="130" y2="122" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Secant.Registry -->
+  <rect x="20" y="122" width="220" height="36" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="130" y="144" text-anchor="middle" font-weight="bold" fill="#16a34a">Secant.Registry</text>
+  <text x="130" y="157" text-anchor="middle" font-size="10" fill="#4ade80">(Registry, :unique, global)</text>
+
+  <!-- gap -->
+
+  <!-- User's App.Supervisor label -->
+  <text x="20" y="192" font-size="11" fill="#94a3b8" font-style="italic">Your application supervisor:</text>
+
+  <!-- Secant.Node (Supervisor) -->
+  <rect x="20" y="200" width="220" height="36" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2" filter="url(#shadow)"/>
+  <text x="130" y="221" text-anchor="middle" font-weight="bold" fill="#d97706">Secant.Node</text>
+  <text x="130" y="234" text-anchor="middle" font-size="10" fill="#f59e0b">(Supervisor, one_for_one)</text>
+
+  <!-- Node children branch line -->
+  <line x1="130" y1="236" x2="130" y2="254" stroke="#d97706" stroke-width="1.5"/>
+  <line x1="50" y1="254" x2="340" y2="254" stroke="#d97706" stroke-width="1.5"/>
+
+  <!-- Child arrows -->
+  <line x1="80"  y1="254" x2="80"  y2="268" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="155" y1="254" x2="155" y2="268" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="230" y1="254" x2="230" y2="268" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="310" y1="254" x2="310" y2="268" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Dispatcher -->
+  <rect x="20" y="268" width="120" height="50" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="80" y="288" text-anchor="middle" font-weight="bold" fill="#7c3aed">Dispatcher</text>
+  <text x="80" y="301" text-anchor="middle" font-size="10" fill="#7c3aed">GenServer</text>
+  <text x="80" y="312" text-anchor="middle" font-size="10" fill="#a78bfa">routes messages</text>
+
+  <!-- Module.Server (n) -->
+  <rect x="100" y="268" width="110" height="50" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="288" text-anchor="middle" font-weight="bold" fill="#16a34a">Module.Server</text>
+  <text x="155" y="301" text-anchor="middle" font-size="10" fill="#16a34a">GenServer × n</text>
+  <text x="155" y="312" text-anchor="middle" font-size="10" fill="#4ade80">via Registry</text>
+
+  <!-- ThousandIsland / TCPServer -->
+  <rect x="175" y="268" width="115" height="50" rx="6" fill="#fce7f3" stroke="#db2777" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="232" y="288" text-anchor="middle" font-weight="bold" fill="#db2777">TCPServer</text>
+  <text x="232" y="301" text-anchor="middle" font-size="10" fill="#db2777">ThousandIsland</text>
+  <text x="232" y="312" text-anchor="middle" font-size="10" fill="#f472b6">Supervisor</text>
+
+  <!-- Discovery -->
+  <rect x="260" y="268" width="100" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="310" y="288" text-anchor="middle" font-weight="bold" fill="#ea580c">Discovery</text>
+  <text x="310" y="301" text-anchor="middle" font-size="10" fill="#ea580c">GenServer</text>
+  <text x="310" y="312" text-anchor="middle" font-size="10" fill="#fb923c">UDP :10767</text>
+
+  <!-- TCPServer children -->
+  <line x1="232" y1="318" x2="232" y2="334" stroke="#db2777" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="175" y="334" width="115" height="46" rx="6" fill="#fdf2f8" stroke="#db2777" stroke-width="1" filter="url(#shadow)"/>
+  <text x="232" y="352" text-anchor="middle" font-weight="bold" fill="#db2777">Connection</text>
+  <text x="232" y="365" text-anchor="middle" font-size="10" fill="#db2777">Handler × client</text>
+  <text x="232" y="376" text-anchor="middle" font-size="10" fill="#f472b6">(dynamic)</text>
+
+  <!-- Module.State box -->
+  <line x1="155" y1="318" x2="155" y2="334" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="95" y="334" width="120" height="46" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1" filter="url(#shadow)"/>
+  <text x="155" y="352" text-anchor="middle" font-weight="bold" fill="#16a34a">Module.State</text>
+  <text x="155" y="365" text-anchor="middle" font-size="10" fill="#16a34a">%{params cache,</text>
+  <text x="155" y="376" text-anchor="middle" font-size="10" fill="#16a34a"> user_state, …}</text>
+
+  <!-- User module callout -->
+  <rect x="20" y="400" width="360" height="46" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="200" y="418" text-anchor="middle" font-size="11" fill="#475569">User module — any Elixir module with</text>
+  <text x="200" y="432" text-anchor="middle" font-size="11" fill="#475569">  use Secant.Module, interface: :drivable</text>
+  <text x="200" y="444" text-anchor="middle" font-size="10" fill="#94a3b8">  defparam / defcommand / defproperty</text>
+
+  <!-- ══════════════════════════════════════════════════════════
+       RIGHT PANEL: Data flow
+       ══════════════════════════════════════════════════════════ -->
+  <text x="420" y="62" font-size="13" font-weight="bold" fill="#64748b">RUNTIME DATA FLOW</text>
+
+  <!-- TCP Client -->
+  <rect x="420" y="72" width="130" height="36" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="485" y="88" text-anchor="middle" font-weight="bold" fill="#2563eb">TCP Client</text>
+  <text x="485" y="101" text-anchor="middle" font-size="10" fill="#3b82f6">telnet / SECoP client</text>
+
+  <!-- Arrow TCP Client → Connection -->
+  <line x1="550" y1="90" x2="620" y2="90" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="582" y="84" text-anchor="middle" font-size="10" fill="#2563eb">TCP :10767</text>
+
+  <!-- Connection box -->
+  <rect x="620" y="72" width="140" height="36" rx="6" fill="#fce7f3" stroke="#db2777" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="690" y="88" text-anchor="middle" font-weight="bold" fill="#db2777">Connection</text>
+  <text x="690" y="101" text-anchor="middle" font-size="10" fill="#db2777">ThousandIsland.Handler</text>
+
+  <!-- Connection → Dispatcher -->
+  <line x1="690" y1="108" x2="690" y2="140" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="700" y="128" font-size="10" fill="#475569">GenServer.call</text>
+
+  <!-- Dispatcher box -->
+  <rect x="590" y="140" width="200" height="56" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="690" y="160" text-anchor="middle" font-weight="bold" fill="#7c3aed">Dispatcher</text>
+  <text x="690" y="174" text-anchor="middle" font-size="10" fill="#7c3aed">describe / read / change / do</text>
+  <text x="690" y="186" text-anchor="middle" font-size="10" fill="#a78bfa">activate / deactivate / ping</text>
+
+  <!-- Dispatcher → Module.Server -->
+  <line x1="690" y1="196" x2="690" y2="226" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="700" y="214" font-size="10" fill="#475569">GenServer.call</text>
+
+  <!-- Module.Server box -->
+  <rect x="590" y="226" width="200" height="70" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="690" y="246" text-anchor="middle" font-weight="bold" fill="#16a34a">Module.Server</text>
+  <text x="690" y="260" text-anchor="middle" font-size="10" fill="#16a34a">{:read, param}</text>
+  <text x="690" y="272" text-anchor="middle" font-size="10" fill="#16a34a">{:write, param, value}</text>
+  <text x="690" y="284" text-anchor="middle" font-size="10" fill="#16a34a">{:do, cmd, arg}  :describe</text>
+
+  <!-- Module.Server → User Module -->
+  <line x1="690" y1="296" x2="690" y2="326" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="700" y="314" font-size="10" fill="#475569">apply/3</text>
+
+  <!-- User module box -->
+  <rect x="590" y="326" width="200" height="70" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3" filter="url(#shadow)"/>
+  <text x="690" y="346" text-anchor="middle" font-weight="bold" fill="#475569">Your Module</text>
+  <text x="690" y="360" text-anchor="middle" font-size="10" fill="#64748b">read_value/1</text>
+  <text x="690" y="372" text-anchor="middle" font-size="10" fill="#64748b">write_target/2</text>
+  <text x="690" y="384" text-anchor="middle" font-size="10" fill="#64748b">do_stop/2</text>
+
+  <!-- Return path (dotted, right side) -->
+  <line x1="800" y1="361" x2="850" y2="361" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,2"/>
+  <line x1="850" y1="90"  x2="850" y2="361" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,2"/>
+  <line x1="760" y1="90"  x2="850" y2="90"  stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arrow)"/>
+  <text x="860" y="230" font-size="10" fill="#94a3b8" transform="rotate(90,860,230)">{:ok, value, state}</text>
+
+  <!-- ══════════════════════════════════════════════════════════
+       BOTTOM RIGHT: Async update flow
+       ══════════════════════════════════════════════════════════ -->
+  <text x="420" y="430" font-size="13" font-weight="bold" fill="#64748b">ASYNC UPDATES (activate)</text>
+
+  <!-- Poll timer -->
+  <rect x="420" y="444" width="130" height="40" rx="6" fill="#fefce8" stroke="#ca8a04" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="485" y="460" text-anchor="middle" font-weight="bold" fill="#ca8a04">:poll timer</text>
+  <text x="485" y="475" text-anchor="middle" font-size="10" fill="#ca8a04">send_after/3</text>
+
+  <line x1="550" y1="464" x2="590" y2="464" stroke="#ca8a04" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Module.Server mini -->
+  <rect x="590" y="444" width="130" height="40" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="655" y="460" text-anchor="middle" font-weight="bold" fill="#16a34a">Module.Server</text>
+  <text x="655" y="475" text-anchor="middle" font-size="10" fill="#16a34a">polls + caches value</text>
+
+  <line x1="720" y1="464" x2="760" y2="464" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="738" y="458" text-anchor="middle" font-size="10" fill="#475569">cast</text>
+
+  <!-- Dispatcher mini -->
+  <rect x="760" y="444" width="130" height="40" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="825" y="460" text-anchor="middle" font-weight="bold" fill="#7c3aed">Dispatcher</text>
+  <text x="825" y="475" text-anchor="middle" font-size="10" fill="#7c3aed">fan-out to subscribers</text>
+
+  <line x1="890" y1="464" x2="930" y2="464" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="908" y="458" text-anchor="middle" font-size="10" fill="#2563eb">send</text>
+
+  <!-- Connection mini -->
+  <rect x="930" y="444" width="100" height="40" rx="6" fill="#fce7f3" stroke="#db2777" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="980" y="460" text-anchor="middle" font-weight="bold" fill="#db2777">Connection</text>
+  <text x="980" y="475" text-anchor="middle" font-size="10" fill="#db2777">→ TCP client</text>
+
+  <!-- update message label -->
+  <text x="820" y="510" text-anchor="middle" font-size="11" fill="#475569">update mod:param [value, {"t": ts}]</text>
+
+  <!-- ══════════════════════════════════════════════════════════
+       BOTTOM: UDP Discovery flow
+       ══════════════════════════════════════════════════════════ -->
+  <text x="420" y="548" font-size="13" font-weight="bold" fill="#64748b">UDP DISCOVERY (port 10767)</text>
+
+  <!-- Startup broadcast -->
+  <rect x="420" y="560" width="140" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="490" y="578" text-anchor="middle" font-weight="bold" fill="#ea580c">Discovery</text>
+  <text x="490" y="592" text-anchor="middle" font-size="10" fill="#ea580c">on startup →</text>
+  <text x="490" y="604" text-anchor="middle" font-size="10" fill="#fb923c">broadcast 255.255.255.255</text>
+
+  <line x1="560" y1="585" x2="610" y2="585" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Network -->
+  <rect x="610" y="560" width="120" height="50" rx="6" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="670" y="580" text-anchor="middle" font-weight="bold" fill="#475569">LAN / network</text>
+  <text x="670" y="594" text-anchor="middle" font-size="10" fill="#64748b">{"SECoP":"discover"}</text>
+  <text x="670" y="606" text-anchor="middle" font-size="10" fill="#64748b">→ unicast reply</text>
+
+  <line x1="730" y1="585" x2="780" y2="585" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Discovery reply box -->
+  <rect x="780" y="560" width="240" height="50" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="900" y="578" text-anchor="middle" font-weight="bold" fill="#ea580c">Discovery reply</text>
+  <text x="900" y="592" text-anchor="middle" font-size="10" fill="#ea580c">{"SECoP":"node","port":10767,</text>
+  <text x="900" y="604" text-anchor="middle" font-size="10" fill="#ea580c">"equipment_id":"…","firmware":"…"}</text>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEGEND
+       ══════════════════════════════════════════════════════════ -->
+  <text x="420" y="640" font-size="13" font-weight="bold" fill="#64748b">LEGEND</text>
+  <rect x="420" y="650" width="14" height="14" rx="3" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="440" y="662" font-size="11" fill="#475569">Library OTP process</text>
+  <rect x="560" y="650" width="14" height="14" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="580" y="662" font-size="11" fill="#475569">Supervisor</text>
+  <rect x="680" y="650" width="14" height="14" rx="3" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="700" y="662" font-size="11" fill="#475569">Module GenServer</text>
+  <rect x="830" y="650" width="14" height="14" rx="3" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="850" y="662" font-size="11" fill="#475569">User code</text>
+
+  <rect x="420" y="674" width="14" height="14" rx="3" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="440" y="686" font-size="11" fill="#475569">Dispatcher</text>
+  <rect x="560" y="674" width="14" height="14" rx="3" fill="#fce7f3" stroke="#db2777" stroke-width="1.5"/>
+  <text x="580" y="686" font-size="11" fill="#475569">TCP / Connection</text>
+  <rect x="680" y="674" width="14" height="14" rx="3" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="700" y="686" font-size="11" fill="#475569">UDP Discovery</text>
+  <line x1="830" y1="681" x2="858" y2="681" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow)"/>
+  <text x="864" y="686" font-size="11" fill="#475569">Return / async path</text>
+
+  <!-- Version watermark -->
+  <text x="1040" y="770" text-anchor="end" font-size="10" fill="#cbd5e1">secant 0.1.0</text>
+</svg>
