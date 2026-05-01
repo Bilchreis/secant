@@ -18,7 +18,6 @@ defmodule Secant.Module.State do
           description: String.t(),
           poll_interval_ms: non_neg_integer(),
           poll_timer_ref: reference() | nil,
-          dispatcher: pid() | atom() | nil,
           user_state: term()
         }
 
@@ -32,6 +31,5 @@ defmodule Secant.Module.State do
             description: "",
             poll_interval_ms: 5000,
             poll_timer_ref: nil,
-            dispatcher: nil,
             user_state: %{}
 end

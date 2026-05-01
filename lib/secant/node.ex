@@ -48,14 +48,6 @@ defmodule Secant.Node do
 
     module_map = Map.new(modules)
 
-    dispatcher_opts = %{
-      node_name: node_name,
-      equipment_id: equipment_id,
-      description: description,
-      node_properties: node_properties,
-      modules: module_map
-    }
-
     module_children =
       Enum.map(modules, fn {mod_name, mod} ->
         %{
@@ -81,11 +73,17 @@ defmodule Secant.Node do
         []
       end
 
-    children =
-      [{Secant.Dispatcher, dispatcher_opts}] ++
-        module_children ++
-        [Secant.TCPServer.child_spec(port: port, node_name: node_name)] ++
-        discovery_children
+    tcp_child =
+      Secant.TCPServer.child_spec(
+        port: port,
+        node_name: node_name,
+        equipment_id: equipment_id,
+        description: description,
+        modules: module_map,
+        node_properties: node_properties
+      )
+
+    children = module_children ++ [tcp_child] ++ discovery_children
 
     Supervisor.init(children, strategy: :one_for_one)
   end

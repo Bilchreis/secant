@@ -82,6 +82,7 @@ defmodule Secant.Module.Server do
       user_state: user_state
     }
 
+
     timer_ref = Process.send_after(self(), :poll, poll_interval_ms)
     {:ok, %{state | poll_timer_ref: timer_ref}}
   end
@@ -312,16 +313,20 @@ defmodule Secant.Module.Server do
   end
 
   defp broadcast_update(state, param_atom) do
-    if state.dispatcher do
-      cache = Map.get(state.params, param_atom)
+    cache = Map.get(state.params, param_atom)
+    spec = Map.get(state.param_specs, param_atom, %{datatype: {:string, []}})
+    encoded = DataType.encode_value(cache.value, spec.datatype)
+    qualifiers = build_qualifiers(cache.timestamp, cache.error)
 
-      GenServer.cast(
-        state.dispatcher,
-        {:update, state.node_name, state.name, Atom.to_string(param_atom),
-         cache.value, cache.timestamp, cache.error}
-      )
-    end
+    Registry.dispatch(Secant.PubSub, state.node_name, fn entries ->
+      for {pid, _} <- entries do
+        send(pid, {:secant_update, state.name, Atom.to_string(param_atom), encoded, qualifiers})
+      end
+    end)
   end
+
+  defp build_qualifiers(ts, nil), do: %{"t" => ts}
+  defp build_qualifiers(ts, %Secant.Error{name: n, message: m}), do: %{"t" => ts, "error" => n, "message" => m}
 
   defp build_report(value, datatype) do
     encoded = DataType.encode_value(value, datatype)

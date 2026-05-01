@@ -6,7 +6,8 @@ defmodule Secant.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Registry, keys: :unique, name: Secant.Registry}
+      {Registry, keys: :unique,    name: Secant.Registry},
+      {Registry, keys: :duplicate, name: Secant.PubSub}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Secant.Supervisor)
