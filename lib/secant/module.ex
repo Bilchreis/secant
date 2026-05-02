@@ -11,13 +11,14 @@ defmodule Secant.Module do
   @moduledoc """
   `use Secant.Module` — declarative API for defining SECoP SEC modules.
 
-  ## Interface classes
+  Prefer the dedicated interface modules over the raw `interface:` option:
 
-  Pass `interface:` option to `use`:
-    - `:module`   — base, adds `pollinterval`
-    - `:readable` — adds `value`, `status`, `pollinterval`
-    - `:writable` — readable + writable `target`
-    - `:drivable` — writable + `stop` command
+      use Secant.Module              # base module, no interface class
+      use Secant.Module.Readable     # requires value + status
+      use Secant.Module.Writable     # requires value + status + target
+      use Secant.Module.Drivable     # requires value + status + target + stop
+
+  Custom interface classes are defined with `Secant.InterfaceClass`.
 
   ## Declaring parameters, commands, and properties
 
@@ -40,14 +41,18 @@ defmodule Secant.Module do
   `{:error, %Secant.Error{}, user_state}`.
   """
 
-  alias Secant.DataType
   alias Secant.Protocol
 
   @standard_params Protocol.standard_params()
   @standard_commands Protocol.standard_commands()
 
   defmacro __using__(opts) do
-    interface = Keyword.get(opts, :interface, :module)
+    interface = Keyword.get(opts, :interface, nil)
+
+    iface_mod              = to_interface_module(interface)
+    {req_params, req_cmds} = interface_requirements(interface)
+    iface_classes          = interface_class_list(interface)
+    iface_label            = interface_label(interface)
 
     quote do
       @behaviour Secant.Module.Behaviour
@@ -56,7 +61,11 @@ defmodule Secant.Module do
       Module.register_attribute(__MODULE__, :secant_commands, accumulate: true)
       Module.register_attribute(__MODULE__, :secant_properties, accumulate: true)
 
-      @secant_interface unquote(interface)
+      @secant_interface_classes unquote(iface_classes)
+      @secant_interface_label   unquote(iface_label)
+      @secant_req_params        unquote(req_params)
+      @secant_req_cmds          unquote(req_cmds)
+      @secant_iface_mod         unquote(iface_mod)
 
       import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2]
 
@@ -83,7 +92,11 @@ defmodule Secant.Module do
   end
 
   defmacro __before_compile__(env) do
-    interface = Module.get_attribute(env.module, :secant_interface)
+    iface_classes = Module.get_attribute(env.module, :secant_interface_classes)
+    iface_label   = Module.get_attribute(env.module, :secant_interface_label)
+    req_params    = Module.get_attribute(env.module, :secant_req_params)
+    req_cmds      = Module.get_attribute(env.module, :secant_req_cmds)
+    iface_mod     = Module.get_attribute(env.module, :secant_iface_mod)
 
     user_params =
       env.module
@@ -100,20 +113,15 @@ defmodule Secant.Module do
       |> Module.get_attribute(:secant_properties)
       |> Enum.reverse()
 
-    # Validate underscore prefix on non-standard names
     validate_names!(env.module, user_params, user_commands, properties)
-
-    # Inject interface-mandated params/commands (user declarations take precedence)
-    {params, commands} = inject_interface_defaults(interface, user_params, user_commands)
-
-    interface_classes = interface_class_list(interface)
+    validate_interface!(env.module, iface_label, req_params, req_cmds, user_params, user_commands)
+    if iface_mod, do: iface_mod.validate!(env.module, user_params, user_commands)
 
     quote do
-      def __secant_params__,            do: unquote(Macro.escape(params))
-      def __secant_commands__,          do: unquote(Macro.escape(commands))
+      def __secant_params__,            do: unquote(Macro.escape(user_params))
+      def __secant_commands__,          do: unquote(Macro.escape(user_commands))
       def __secant_properties__,        do: unquote(Macro.escape(properties))
-      def __secant_interface__,         do: unquote(interface)
-      def __secant_interface_classes__, do: unquote(interface_classes)
+      def __secant_interface_classes__, do: unquote(iface_classes)
 
       @impl Secant.Module.Behaviour
       def init_module(_opts), do: {:ok, %{}}
@@ -179,63 +187,58 @@ defmodule Secant.Module do
     end)
   end
 
-  defp inject_interface_defaults(interface, user_params, user_commands) do
-    user_param_names = Enum.map(user_params, fn {n, _} -> n end)
-    user_cmd_names = Enum.map(user_commands, fn {n, _} -> n end)
+  defp validate_interface!(mod, label, req_params, req_cmds, params, commands) do
+    param_names = Enum.map(params, &elem(&1, 0))
+    cmd_names   = Enum.map(commands, &elem(&1, 0))
 
-    {default_params, default_commands} = interface_defaults(interface)
+    Enum.each(req_params, fn name ->
+      unless name in param_names do
+        raise CompileError,
+          file: "#{mod}",
+          description:
+            "#{label} module missing required parameter '#{name}'. " <>
+              "Declare it with: defparam :#{name}, %{...}"
+      end
+    end)
 
-    # Prepend defaults that user hasn't overridden
-    merged_params =
-      Enum.reject(default_params, fn {n, _} -> n in user_param_names end) ++ user_params
-
-    merged_commands =
-      Enum.reject(default_commands, fn {n, _} -> n in user_cmd_names end) ++ user_commands
-
-    {merged_params, merged_commands}
+    Enum.each(req_cmds, fn name ->
+      unless name in cmd_names do
+        raise CompileError,
+          file: "#{mod}",
+          description:
+            "#{label} module missing required command '#{name}'. " <>
+              "Declare it with: defcommand :#{name}, %{...}"
+      end
+    end)
   end
 
-  defp interface_defaults(:module) do
-    {[{:pollinterval, pollinterval_spec()}], []}
+  defp to_interface_module(nil),       do: nil
+  defp to_interface_module(:readable), do: Secant.Module.Readable
+  defp to_interface_module(:writable), do: Secant.Module.Writable
+  defp to_interface_module(:drivable), do: Secant.Module.Drivable
+  defp to_interface_module(%Secant.InterfaceClass{extends: parent}), do: to_interface_module(parent)
+
+  defp interface_requirements(nil), do: {[], []}
+  defp interface_requirements(atom) when atom in [:readable, :writable, :drivable] do
+    mod = to_interface_module(atom)
+    {mod.required_params(), mod.required_commands()}
+  end
+  defp interface_requirements(%Secant.InterfaceClass{extends: parent, requires_params: rp, requires_commands: rc}) do
+    {base_params, base_cmds} = interface_requirements(parent)
+    {Enum.uniq(base_params ++ rp), Enum.uniq(base_cmds ++ rc)}
   end
 
-  defp interface_defaults(:readable) do
-    params = [
-      {:pollinterval, pollinterval_spec()},
-      {:value, %{description: "main value", datatype: {:double, []}, readonly: true}},
-      {:status, %{description: "module status", datatype: DataType.status_type(), readonly: true}}
-    ]
-
-    {params, []}
+  defp interface_label(nil), do: "Module"
+  defp interface_label(atom) when atom in [:readable, :writable, :drivable] do
+    atom |> to_interface_module() |> then(fn mod -> hd(mod.class_list()) end)
   end
+  defp interface_label(%Secant.InterfaceClass{name: name}), do: name
 
-  defp interface_defaults(:writable) do
-    {base_params, base_cmds} = interface_defaults(:readable)
-
-    params =
-      base_params ++
-        [{:target, %{description: "target value", datatype: {:double, []}, readonly: false}}]
-
-    {params, base_cmds}
+  defp interface_class_list(nil), do: ["Module"]
+  defp interface_class_list(atom) when atom in [:readable, :writable, :drivable] do
+    to_interface_module(atom).class_list()
   end
-
-  defp interface_defaults(:drivable) do
-    {base_params, _base_cmds} = interface_defaults(:writable)
-    commands = [{:stop, %{description: "Stop current action", argument: :null, result: :null}}]
-    {base_params, commands}
+  defp interface_class_list(%Secant.InterfaceClass{name: name, extends: parent}) do
+    [name | interface_class_list(parent)]
   end
-
-  defp pollinterval_spec do
-    %{
-      description: "polling interval hint in seconds",
-      datatype: {:double, min: 0.1, max: 120.0},
-      readonly: false,
-      default: 5.0
-    }
-  end
-
-  defp interface_class_list(:module), do: ["Module"]
-  defp interface_class_list(:readable), do: ["Readable", "Module"]
-  defp interface_class_list(:writable), do: ["Writable", "Readable", "Module"]
-  defp interface_class_list(:drivable), do: ["Drivable", "Writable", "Readable", "Module"]
 end

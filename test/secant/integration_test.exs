@@ -5,7 +5,7 @@ defmodule Secant.IntegrationTest do
   @timeout 3000
 
   defmodule TempModule do
-    use Secant.Module, interface: :drivable
+    use Secant.Module.Drivable
 
     defproperty :_manufacturer, "TestCorp"
 
@@ -14,6 +14,13 @@ defmodule Secant.IntegrationTest do
       datatype: {:double, min: 0, max: 400, unit: "K"},
       readonly: true,
       default: 300.0
+    }
+
+    defparam :status, %{
+      description: "module status",
+      datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]},
+      readonly: true,
+      default: [100, ""]
     }
 
     defparam :target, %{
@@ -27,10 +34,13 @@ defmodule Secant.IntegrationTest do
 
     def init_module(_opts), do: {:ok, %{value: 300.0}}
 
+    @impl Secant.Module.Drivable
     def read_value(%{value: v} = state), do: {:ok, v, state}
 
+    @impl Secant.Module.Drivable
     def write_target(val, state), do: {:ok, val, Map.put(state, :target, val)}
 
+    @impl Secant.Module.Drivable
     def do_stop(_arg, state), do: {:ok, nil, state}
   end
 
@@ -133,6 +143,34 @@ defmodule Secant.IntegrationTest do
     assert spec == "temp:target"
     [value, _quals] = data
     assert value == 350.0
+
+
+    send_msg(sock, "read temp:target")
+    line = recv_line(sock)
+    {action, spec, data} = parse_response(line)
+    assert action == "reply"
+    assert spec == "temp:target"
+    [value, _quals] = data
+    assert value == 350.0
+
+
+
+    send_msg(sock, "change temp:target 300.0")
+    line = recv_line(sock)
+    {action, spec, data} = parse_response(line)
+    assert action == "changed"
+    assert spec == "temp:target"
+    [value, _quals] = data
+    assert value == 300.0
+
+
+    send_msg(sock, "read temp:target")
+    line = recv_line(sock)
+    {action, spec, data} = parse_response(line)
+    assert action == "reply"
+    assert spec == "temp:target"
+    [value, _quals] = data
+    assert value == 300.0
     :gen_tcp.close(sock)
   end
 

@@ -4,7 +4,7 @@ defmodule Secant.DiscoveryTest do
   @udp_port 10768
 
   defmodule EmptyModule do
-    use Secant.Module, interface: :module
+    use Secant.Module
   end
 
   setup do
