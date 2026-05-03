@@ -47,9 +47,10 @@ defmodule Secant.InterfaceClass do
     quote do
       defmacro __using__(inner_opts) do
         merged = Keyword.put(inner_opts, :interface, unquote(escaped))
+        escaped_merged = Macro.escape(merged)
 
         quote do
-          use Secant.Module, unquote(merged)
+          use Secant.Module, unquote(escaped_merged)
         end
       end
     end
