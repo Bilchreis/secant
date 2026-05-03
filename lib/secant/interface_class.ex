@@ -35,22 +35,23 @@ defmodule Secant.InterfaceClass do
     requires_params = Keyword.get(opts, :requires_params, [])
     requires_cmds   = Keyword.get(opts, :requires_commands, [])
 
-    interface = %Secant.InterfaceClass{
-      name: name,
-      extends: extends,
-      requires_params: requires_params,
-      requires_commands: requires_cmds
-    }
-
-    escaped = Macro.escape(interface)
-
     quote do
-      defmacro __using__(inner_opts) do
-        merged = Keyword.put(inner_opts, :interface, unquote(escaped))
-        escaped_merged = Macro.escape(merged)
+      # Expose the interface spec as a function so it can be retrieved at
+      # compile time by Secant.Module.__using__ without going through AST.
+      def __secant_interface_class__ do
+        %Secant.InterfaceClass{
+          name: unquote(name),
+          extends: unquote(extends),
+          requires_params: unquote(requires_params),
+          requires_commands: unquote(requires_cmds)
+        }
+      end
 
+      # Pass the module name (a plain atom) as the :interface option so it
+      # survives macro quoting without needing Macro.escape on a struct.
+      defmacro __using__(_inner_opts) do
         quote do
-          use Secant.Module, unquote(escaped_merged)
+          use Secant.Module, interface: unquote(__MODULE__)
         end
       end
     end
