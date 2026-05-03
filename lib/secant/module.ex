@@ -47,7 +47,18 @@ defmodule Secant.Module do
   @standard_commands Protocol.standard_commands()
 
   defmacro __using__(opts) do
-    interface = Keyword.get(opts, :interface, nil)
+    raw_interface = Keyword.get(opts, :interface, nil)
+
+    # When a custom InterfaceClass module passes itself as the :interface
+    # option it arrives as a plain atom (module name), which is valid AST.
+    # Resolve it to the actual struct here at compile time.
+    interface =
+      case raw_interface do
+        nil -> nil
+        atom when atom in [:readable, :writable, :drivable] -> atom
+        %Secant.InterfaceClass{} = s -> s
+        mod when is_atom(mod) -> mod.__secant_interface_class__()
+      end
 
     iface_mod              = to_interface_module(interface)
     {req_params, req_cmds} = interface_requirements(interface)
