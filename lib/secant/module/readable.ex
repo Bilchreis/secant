@@ -26,9 +26,9 @@ defmodule Secant.Module.Readable do
 
   defp validate_status_datatype!(mod, spec) do
     case Map.get(spec, :datatype) do
-      {:tuple, [enum_type, string_type]} ->
+      %Secant.DataType.Tuple{types: [enum_type, string_type]} ->
         case enum_type do
-          {:enum, members} when is_map(members) ->
+          %Secant.DataType.Enum{members: members} when is_map(members) ->
             Enum.each(Map.values(members), fn v ->
               unless is_integer(v) and v >= 0 and v <= 499 do
                 raise CompileError,
@@ -42,14 +42,14 @@ defmodule Secant.Module.Readable do
             raise CompileError,
               file: "#{mod}",
               description:
-                "status parameter's first tuple element must be {:enum, %{name => integer_code}}."
+                "status parameter's first tuple element must be %Enum{members: %{name => integer_code}}."
         end
 
-        unless match?({:string, _}, string_type) do
+        unless match?(%Secant.DataType.String{}, string_type) do
           raise CompileError,
             file: "#{mod}",
             description:
-              "status parameter datatype must be {:tuple, [enum_type, {:string, opts}]}; " <>
+              "status parameter datatype must be %Tuple{types: [enum_type, %String{}]}; " <>
                 "second element must be a string type."
         end
 
@@ -57,7 +57,7 @@ defmodule Secant.Module.Readable do
         raise CompileError,
           file: "#{mod}",
           description:
-            "status parameter must have datatype {:tuple, [enum_type, string_type]}."
+            "status parameter must have datatype %Tuple{types: [enum_type, string_type]}."
     end
   end
 

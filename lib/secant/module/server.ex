@@ -197,7 +197,7 @@ defmodule Secant.Module.Server do
   def handle_call(:current_values, _from, state) do
     values =
       Enum.map(state.params, fn {param_name, cache} ->
-        spec = Map.get(state.param_specs, param_name, %{datatype: {:string, []}})
+        spec = Map.get(state.param_specs, param_name, %{datatype: %Secant.DataType.String{}})
         encoded = DataType.encode_value(cache.value, spec.datatype)
         {Atom.to_string(param_name), encoded, cache.timestamp, cache.error}
       end)
@@ -314,7 +314,7 @@ defmodule Secant.Module.Server do
 
   defp broadcast_update(state, param_atom) do
     cache = Map.get(state.params, param_atom)
-    spec = Map.get(state.param_specs, param_atom, %{datatype: {:string, []}})
+    spec = Map.get(state.param_specs, param_atom, %{datatype: %Secant.DataType.String{}})
     encoded = DataType.encode_value(cache.value, spec.datatype)
     qualifiers = build_qualifiers(cache.timestamp, cache.error)
 
@@ -356,6 +356,8 @@ defmodule Secant.Module.Server do
     end)
   end
 
+  defp atomize_map(map) when is_struct(map), do: Map.from_struct(map)
+
   defp atomize_map(map) when is_map(map) do
     Map.new(map, fn {k, v} -> {if(is_atom(k), do: k, else: String.to_atom(k)), v} end)
   end
@@ -382,7 +384,7 @@ defmodule Secant.Module.Server do
         accessible =
           case Map.get(spec, :properties) do
             nil -> accessible
-            props -> Map.put(accessible, "properties", encode_properties(props))
+            props -> Map.merge(accessible, encode_properties(props))
           end
 
         {Atom.to_string(name), accessible}
@@ -406,7 +408,7 @@ defmodule Secant.Module.Server do
         accessible =
           case Map.get(spec, :properties) do
             nil -> accessible
-            props -> Map.put(accessible, "properties", encode_properties(props))
+            props -> Map.merge(accessible, encode_properties(props))
           end
 
         {Atom.to_string(name), accessible}
@@ -422,12 +424,11 @@ defmodule Secant.Module.Server do
         %{}
       end
 
-    %{
+    Map.merge(module_properties, %{
       "description" => state.description,
       "interface_classes" => state.interface_classes,
-      "accessibles" => all_accessibles,
-      "properties" => module_properties
-    }
+      "accessibles" => all_accessibles
+    })
   end
 
   defp encode_properties(props) when is_map(props) do
