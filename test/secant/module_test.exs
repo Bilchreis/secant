@@ -1,6 +1,8 @@
 defmodule Secant.ModuleTest do
   use ExUnit.Case, async: true
 
+  @status_datatype "tuple([enum(%{\"DISABLED\" => 0, \"IDLE\" => 100, \"WARN\" => 200, \"BUSY\" => 300, \"ERROR\" => 400}), string()])"
+
   # Define inline test modules at compile time
   defmodule TestReadable do
     use Secant.Module.Readable
@@ -9,13 +11,13 @@ defmodule Secant.ModuleTest do
 
     defparam :value, %{
       description: "test reading",
-      datatype: {:double, min: 0, max: 100, unit: "K"},
+      datatype: double(min: 0, max: 100, unit: "K"),
       readonly: true
     }
 
     defparam :status, %{
       description: "module status",
-      datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]},
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
       readonly: true
     }
 
@@ -28,25 +30,25 @@ defmodule Secant.ModuleTest do
 
     defparam :value, %{
       description: "current value",
-      datatype: {:double, []},
+      datatype: double(),
       readonly: true
     }
 
     defparam :status, %{
       description: "module status",
-      datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]},
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
       readonly: true
     }
 
     defparam :target, %{
       description: "target value",
-      datatype: {:double, []},
+      datatype: double(),
       readonly: false
     }
 
     defparam :_custom_param, %{
       description: "a custom parameter",
-      datatype: {:string, []},
+      datatype: string(),
       readonly: true
     }
 
@@ -84,7 +86,7 @@ defmodule Secant.ModuleTest do
     test "value param spec matches declaration" do
       params = TestReadable.__secant_params__()
       {_, value_spec} = Enum.find(params, fn {n, _} -> n == :value end)
-      assert Map.get(value_spec, :datatype) == {:double, min: 0, max: 100, unit: "K"}
+      assert Map.get(value_spec, :datatype) == %Secant.DataType.Double{min: 0, max: 100, unit: "K"}
     end
 
     test "drivable has value, status, and target" do
@@ -118,8 +120,8 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatus do
           use Secant.Module, interface: :readable
-          defparam :value, %{description: "v", datatype: {:double, []}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:int, []}, {:string, []}]}, readonly: true}
+          defparam :value, %{description: "v", datatype: double(), readonly: true}
+          defparam :status, %{description: "s", datatype: tuple([int(), string()]), readonly: true}
         end
         """)
       end
@@ -130,8 +132,8 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatusEnum do
           use Secant.Module, interface: :readable
-          defparam :value, %{description: "v", datatype: {:double, []}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"IDLE" => 100, "BAD" => 500}}, {:string, []}]}, readonly: true}
+          defparam :value, %{description: "v", datatype: double(), readonly: true}
+          defparam :status, %{description: "s", datatype: tuple([enum(%{"IDLE" => 100, "BAD" => 500}), string()]), readonly: true}
         end
         """)
       end
@@ -142,8 +144,8 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatusString do
           use Secant.Module, interface: :readable
-          defparam :value, %{description: "v", datatype: {:double, []}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:int, []}]}, readonly: true}
+          defparam :value, %{description: "v", datatype: double(), readonly: true}
+          defparam :status, %{description: "s", datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), int()]), readonly: true}
         end
         """)
       end
@@ -154,9 +156,9 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule TypeMismatch do
           use Secant.Module, interface: :writable
-          defparam :value, %{description: "v", datatype: {:double, []}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-          defparam :target, %{description: "t", datatype: {:int, []}, readonly: false}
+          defparam :value, %{description: "v", datatype: double(), readonly: true}
+          defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+          defparam :target, %{description: "t", datatype: int(), readonly: false}
         end
         """)
       end
@@ -167,9 +169,9 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule MinMismatch do
           use Secant.Module, interface: :writable
-          defparam :value, %{description: "v", datatype: {:double, min: 20.0, max: 400.0}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-          defparam :target, %{description: "t", datatype: {:double, min: 0.0, max: 400.0}, readonly: false}
+          defparam :value, %{description: "v", datatype: double(min: 20.0, max: 400.0), readonly: true}
+          defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+          defparam :target, %{description: "t", datatype: double(min: 0.0, max: 400.0), readonly: false}
         end
         """)
       end
@@ -180,9 +182,9 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule MaxMismatch do
           use Secant.Module, interface: :writable
-          defparam :value, %{description: "v", datatype: {:double, min: 0.0, max: 350.0}, readonly: true}
-          defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-          defparam :target, %{description: "t", datatype: {:double, min: 0.0, max: 400.0}, readonly: false}
+          defparam :value, %{description: "v", datatype: double(min: 0.0, max: 350.0), readonly: true}
+          defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+          defparam :target, %{description: "t", datatype: double(min: 0.0, max: 400.0), readonly: false}
         end
         """)
       end
@@ -192,9 +194,9 @@ defmodule Secant.ModuleTest do
       Code.eval_string("""
       defmodule ValidRange do
         use Secant.Module, interface: :writable
-        defparam :value, %{description: "v", datatype: {:double, min: 0.0, max: 400.0}, readonly: true}
-        defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-        defparam :target, %{description: "t", datatype: {:double, min: 20.0, max: 350.0}, readonly: false}
+        defparam :value, %{description: "v", datatype: double(min: 0.0, max: 400.0), readonly: true}
+        defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+        defparam :target, %{description: "t", datatype: double(min: 20.0, max: 350.0), readonly: false}
       end
       """)
     end
@@ -213,7 +215,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadParam do
           use Secant.Module
-          defparam :weird_custom, %{description: "bad", datatype: {:double, []}, readonly: true}
+          defparam :weird_custom, %{description: "bad", datatype: double(), readonly: true}
         end
         """)
       end
@@ -253,16 +255,16 @@ defmodule Secant.ModuleTest do
     defmodule TestCustomModule do
       use TestCustomClass
 
-      defparam :value, %{description: "current value", datatype: {:double, []}, readonly: true}
+      defparam :value, %{description: "current value", datatype: double(), readonly: true}
 
       defparam :status, %{
         description: "module status",
-        datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]},
+        datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
         readonly: true
       }
 
-      defparam :target, %{description: "target value", datatype: {:double, []}, readonly: false}
-      defparam :ramp,   %{description: "ramp rate",    datatype: {:double, []}, readonly: false}
+      defparam :target, %{description: "target value", datatype: double(), readonly: false}
+      defparam :ramp,   %{description: "ramp rate",    datatype: double(), readonly: false}
       defcommand :stop, %{description: "Stop", argument: :null, result: :null}
     end
 
@@ -280,9 +282,9 @@ defmodule Secant.ModuleTest do
           end
           defmodule Mod do
             use Ctrl
-            defparam :value,  %{description: "v", datatype: {:double, []}, readonly: true}
-            defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-            defparam :target, %{description: "t", datatype: {:double, []}, readonly: false}
+            defparam :value,  %{description: "v", datatype: double(), readonly: true}
+            defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+            defparam :target, %{description: "t", datatype: double(), readonly: false}
             defcommand :stop, %{description: "Stop", argument: :null, result: :null}
           end
         end
@@ -299,10 +301,10 @@ defmodule Secant.ModuleTest do
           end
           defmodule Mod2 do
             use Ctrl2
-            defparam :value,  %{description: "v", datatype: {:double, []}, readonly: true}
-            defparam :status, %{description: "s", datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]}, readonly: true}
-            defparam :target, %{description: "t", datatype: {:int, []},    readonly: false}
-            defparam :ramp,   %{description: "r", datatype: {:double, []}, readonly: false}
+            defparam :value,  %{description: "v", datatype: double(), readonly: true}
+            defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
+            defparam :target, %{description: "t", datatype: int(),    readonly: false}
+            defparam :ramp,   %{description: "r", datatype: double(), readonly: false}
             defcommand :stop, %{description: "Stop", argument: :null, result: :null}
           end
         end

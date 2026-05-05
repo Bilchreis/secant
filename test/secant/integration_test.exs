@@ -11,26 +11,115 @@ defmodule Secant.IntegrationTest do
 
     defparam :value, %{
       description: "temperature",
-      datatype: {:double, min: 0, max: 400, unit: "K"},
+      datatype: double(min: 0, max: 400, unit: "K"),
       readonly: true,
       default: 300.0
     }
 
     defparam :status, %{
       description: "module status",
-      datatype: {:tuple, [{:enum, %{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}}, {:string, []}]},
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
       readonly: true,
       default: [100, ""]
     }
 
     defparam :target, %{
       description: "target temperature",
-      datatype: {:double, min: 0, max: 400, unit: "K"},
+      datatype: double(min: 0, max: 400, unit: "K"),
       readonly: false,
       default: 300.0
     }
 
     defcommand :stop, %{description: "Stop ramping", argument: :null, result: :null}
+
+    def init_module(_opts), do: {:ok, %{value: 300.0}}
+
+    @impl Secant.Module.Drivable
+    def read_value(%{value: v} = state), do: {:ok, v, state}
+
+    @impl Secant.Module.Drivable
+    def write_target(val, state), do: {:ok, val, Map.put(state, :target, val)}
+
+    @impl Secant.Module.Drivable
+    def do_stop(_arg, state), do: {:ok, nil, state}
+  end
+
+  defmodule TempModuleBlock do
+    use Secant.Module.Drivable
+
+    defproperty :_manufacturer, "TestCorp"
+
+    defparam :value do
+      description "temperature"
+      datatype double(min: 0, max: 400, unit: "K")
+      readonly true
+      default 300.0
+    end
+
+    defparam :status do
+      description "module status"
+      datatype tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()])
+      readonly true
+      default [100, ""]
+    end
+
+    defparam :target do
+      description "target temperature"
+      datatype double(min: 0, max: 400, unit: "K")
+      readonly false
+      default 300.0
+    end
+
+    defcommand :stop do
+      description "Stop ramping"
+      argument null()
+      result null()
+    end
+
+    def init_module(_opts), do: {:ok, %{value: 300.0}}
+
+    @impl Secant.Module.Drivable
+    def read_value(%{value: v} = state), do: {:ok, v, state}
+
+    @impl Secant.Module.Drivable
+    def write_target(val, state), do: {:ok, val, Map.put(state, :target, val)}
+
+    @impl Secant.Module.Drivable
+    def do_stop(_arg, state), do: {:ok, nil, state}
+  end
+
+  defmodule TempModuleStructSpec do
+    use Secant.Module.Drivable
+
+    defproperty :_manufacturer, "TestCorp"
+
+    defparam :value, %ParamSpec{
+      description: "temperature",
+      datatype: double(min: 0, max: 400, unit: "K"),
+      readonly: true,
+      default: 300.0,
+      properties: %{_myproperty: "hello"}
+    }
+
+    defparam :status, %ParamSpec{
+      description: "module status",
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      readonly: true,
+      default: [100, ""]
+    }
+
+    defparam :target, %ParamSpec{
+      description: "target temperature",
+      datatype: double(min: 0, max: 400, unit: "K"),
+      readonly: false,
+      default: 300.0
+    }
+
+    defcommand :stop, %CommandSpec{
+      description: "Stop ramping",
+      argument: null(),
+      result: null()
+    }
 
     def init_module(_opts), do: {:ok, %{value: 300.0}}
 
@@ -116,7 +205,11 @@ defmodule Secant.IntegrationTest do
     assert is_map(data)
     assert Map.has_key?(data, "equipment_id")
     assert Map.has_key?(data, "modules")
-    assert Map.has_key?(data["modules"], "temp")
+    temp = data["modules"]["temp"]
+    assert Map.has_key?(temp, "accessibles")
+    assert Map.has_key?(temp["accessibles"], "value")
+    assert temp["_manufacturer"] == "TestCorp"
+    refute Map.has_key?(temp, "properties")
     :gen_tcp.close(sock)
   end
 
@@ -227,6 +320,83 @@ defmodule Secant.IntegrationTest do
     {action, _spec, _data} = parse_response(line)
     assert action == "error_change"
     :gen_tcp.close(sock)
+  end
+
+  test "block DSL produces same specs as map syntax" do
+    map_params   = Map.new(TempModule.__secant_params__())
+    block_params = Map.new(TempModuleBlock.__secant_params__())
+    assert map_params == block_params
+
+    map_cmds   = Map.new(TempModule.__secant_commands__())
+    block_cmds = Map.new(TempModuleBlock.__secant_commands__())
+    assert map_cmds == block_cmds
+  end
+
+  test "struct spec form produces correct specs" do
+    struct_params = Map.new(TempModuleStructSpec.__secant_params__())
+
+    assert %Secant.ParamSpec{
+             description: "temperature",
+             datatype: %Secant.DataType.Double{min: 0, max: 400, unit: "K"},
+             readonly: true,
+             default: 300.0
+           } = struct_params[:value]
+
+    assert %Secant.ParamSpec{
+             description: "target temperature",
+             datatype: %Secant.DataType.Double{min: 0, max: 400, unit: "K"},
+             readonly: false,
+             default: 300.0
+           } = struct_params[:target]
+
+    struct_cmds = Map.new(TempModuleStructSpec.__secant_commands__())
+
+    assert %Secant.CommandSpec{
+             description: "Stop ramping",
+             argument: :null,
+             result: :null
+           } = struct_cmds[:stop]
+  end
+
+  test "custom properties in ParamSpec appear in describe output" do
+    node_name = "struct_spec_node_#{:rand.uniform(10_000)}"
+
+    node_opts = [
+      equipment_id: node_name,
+      description: "struct spec node",
+      port: @port + 1,
+      modules: [{"temp", TempModuleStructSpec}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :struct_spec_node)
+    Process.sleep(50)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 1, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "describe\n")
+    line = recv_line(sock)
+    :gen_tcp.close(sock)
+
+    {_action, _spec, data} = parse_response(line)
+    value_accessible = data["modules"]["temp"]["accessibles"]["value"]
+    assert value_accessible["_myproperty"] == "hello"
+    refute Map.has_key?(value_accessible, "properties")
+  end
+
+  test "struct spec form semantic fields match map syntax" do
+    map_params    = Map.new(TempModule.__secant_params__())
+    struct_params = Map.new(TempModuleStructSpec.__secant_params__())
+
+    for name <- [:value, :status, :target] do
+      assert Map.take(map_params[name], [:description, :datatype, :readonly, :default]) ==
+               Map.take(struct_params[name], [:description, :datatype, :readonly, :default])
+    end
+
+    map_cmds    = Map.new(TempModule.__secant_commands__())
+    struct_cmds = Map.new(TempModuleStructSpec.__secant_commands__())
+
+    assert Map.take(map_cmds[:stop], [:description, :argument, :result]) ==
+             Map.take(struct_cmds[:stop], [:description, :argument, :result])
   end
 
   # Helpers

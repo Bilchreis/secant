@@ -1,3 +1,32 @@
+defmodule Secant.ParamSpec do
+  @moduledoc "Spec struct for a SECoP parameter — use this for IDE field completion."
+  @enforce_keys [:description]
+  @type t :: %__MODULE__{
+          description: String.t(),
+          datatype: Secant.DataType.t() | nil,
+          readonly: boolean() | nil,
+          default: term(),
+          properties: map() | nil,
+          group: String.t() | nil,
+          visibility: String.t() | nil
+        }
+  defstruct [:description, :datatype, :readonly, :default, :properties, :group, :visibility]
+end
+
+defmodule Secant.CommandSpec do
+  @moduledoc "Spec struct for a SECoP command — use this for IDE field completion."
+  @enforce_keys [:description]
+  @type t :: %__MODULE__{
+          description: String.t(),
+          argument: Secant.DataType.t() | nil,
+          result: Secant.DataType.t() | nil,
+          properties: map() | nil,
+          group: String.t() | nil,
+          visibility: String.t() | nil
+        }
+  defstruct [:description, :argument, :result, :properties, :group, :visibility]
+end
+
 defmodule Secant.Module.Behaviour do
   @moduledoc "Optional callbacks for user-defined SEC modules."
 
@@ -79,14 +108,32 @@ defmodule Secant.Module do
       @secant_iface_mod         unquote(iface_mod)
 
       import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2]
+      import Secant.DataType
+      alias Secant.DataType, as: DT
+      alias Secant.ParamSpec
+      alias Secant.CommandSpec
 
       @before_compile Secant.Module
+    end
+  end
+
+  defmacro defparam(name, do: block) do
+    map_expr = {:%{}, [], spec_block_to_fields(block)}
+    quote do
+      @secant_params {unquote(name), unquote(map_expr)}
     end
   end
 
   defmacro defparam(name, spec) do
     quote do
       @secant_params {unquote(name), unquote(spec)}
+    end
+  end
+
+  defmacro defcommand(name, do: block) do
+    map_expr = {:%{}, [], spec_block_to_fields(block)}
+    quote do
+      @secant_commands {unquote(name), unquote(map_expr)}
     end
   end
 
@@ -252,4 +299,9 @@ defmodule Secant.Module do
   defp interface_class_list(%Secant.InterfaceClass{name: name, extends: parent}) do
     [name | interface_class_list(parent)]
   end
+
+  defp spec_block_to_fields({:__block__, _, stmts}), do: Enum.map(stmts, &stmt_to_field/1)
+  defp spec_block_to_fields(single), do: [stmt_to_field(single)]
+
+  defp stmt_to_field({key, _meta, [value_expr]}), do: {key, value_expr}
 end
