@@ -46,16 +46,16 @@ defmodule Secant.Node do
     node_name = String.to_atom(equipment_id)
     node_properties = validate_and_encode_node_properties!(raw_properties)
 
-    module_map = Map.new(modules)
+    module_map =
+      Map.new(modules, fn
+        {name, mod} -> {name, mod}
+        {name, mod, _opts} -> {name, mod}
+      end)
 
     module_children =
-      Enum.map(modules, fn {mod_name, mod} ->
-        %{
-          id: {Secant.Module.Server, mod_name},
-          start:
-            {Secant.Module.Server, :start_link,
-             [%{name: mod_name, module: mod, node_name: node_name, opts: []}]}
-        }
+      Enum.map(modules, fn
+        {mod_name, mod} -> build_module_child(mod_name, mod, node_name, [])
+        {mod_name, mod, mod_opts} -> build_module_child(mod_name, mod, node_name, mod_opts)
       end)
 
     discovery_children =
@@ -89,6 +89,15 @@ defmodule Secant.Node do
   end
 
   # ---- private ----
+
+  defp build_module_child(mod_name, mod, node_name, mod_opts) do
+    %{
+      id: {Secant.Module.Server, mod_name},
+      start:
+        {Secant.Module.Server, :start_link,
+         [%{name: mod_name, module: mod, node_name: node_name, opts: mod_opts}]}
+    }
+  end
 
   defp validate_and_encode_node_properties!(properties) do
     Enum.each(properties, fn {key, _val} ->
