@@ -18,7 +18,8 @@ defmodule Secant.Module.State do
           description: String.t(),
           poll_interval_ms: non_neg_integer(),
           poll_timer_ref: reference() | nil,
-          user_state: term()
+          user_state: term(),
+          runtime_properties: %{String.t() => term()}
         }
 
   defstruct name: nil,
@@ -31,5 +32,6 @@ defmodule Secant.Module.State do
             description: "",
             poll_interval_ms: 5000,
             poll_timer_ref: nil,
-            user_state: %{}
+            user_state: %{},
+            runtime_properties: %{}
 end

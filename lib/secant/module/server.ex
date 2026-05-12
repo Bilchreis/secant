@@ -44,13 +44,25 @@ defmodule Secant.Module.Server do
 
   @impl true
   def init(%{name: mod_name, module: mod, node_name: node_name, opts: opts}) do
+    runtime_properties =
+      opts
+      |> Keyword.get(:properties, [])
+      |> Map.new(fn {k, v} -> {to_string(k), v} end)
+
+    param_defaults = Keyword.get(opts, :param_defaults, [])
+    init_opts = Keyword.drop(opts, [:properties, :param_defaults])
+
     param_specs = build_param_specs(mod)
     command_specs = build_command_specs(mod)
-    params_cache = build_initial_cache(param_specs)
+
+    params_cache =
+      Enum.reduce(param_defaults, build_initial_cache(param_specs), fn {k, v}, acc ->
+        Map.update(acc, k, %{value: v, timestamp: 0.0, error: nil}, &%{&1 | value: v})
+      end)
 
     user_state =
       if function_exported?(mod, :init_module, 1) do
-        case mod.init_module(opts) do
+        case mod.init_module(init_opts) do
           {:ok, s} -> s
           _ -> %{}
         end
@@ -79,7 +91,8 @@ defmodule Secant.Module.Server do
       interface_classes: mod.__secant_interface_classes__(),
       description: description,
       poll_interval_ms: poll_interval_ms,
-      user_state: user_state
+      user_state: user_state,
+      runtime_properties: runtime_properties
     }
 
 
@@ -416,13 +429,15 @@ defmodule Secant.Module.Server do
 
     all_accessibles = Map.new(accessibles ++ commands)
 
-    module_properties =
+    compile_time_properties =
       if function_exported?(mod, :__secant_properties__, 0) do
         mod.__secant_properties__()
         |> Map.new(fn {k, v} -> {Atom.to_string(k), v} end)
       else
         %{}
       end
+
+    module_properties = Map.merge(compile_time_properties, state.runtime_properties)
 
     Map.merge(module_properties, %{
       "description" => state.description,

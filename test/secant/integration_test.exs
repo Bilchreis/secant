@@ -133,6 +133,48 @@ defmodule Secant.IntegrationTest do
     def do_stop(_arg, state), do: {:ok, nil, state}
   end
 
+  # Module used for per-instance config tests — channel opt drives read_value return
+  defmodule ConfigurableModule do
+    use Secant.Module.Readable
+
+    defproperty :_manufacturer, "DefaultCorp"
+
+    defparam :value, %{
+      description: "channel reading",
+      datatype: double(min: 0, max: 1000),
+      readonly: true,
+      default: 0.0
+    }
+
+    defparam :status, %{
+      description: "module status",
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
+      readonly: true,
+      default: [100, ""]
+    }
+
+    def init_module(opts), do: {:ok, %{channel: Keyword.get(opts, :channel, 0)}}
+
+    @impl Secant.Module.Readable
+    def read_value(%{channel: ch} = state), do: {:ok, ch * 1.0, state}
+  end
+
+  # Module with no read callbacks — reads always return the cached (or param_defaults) value
+  defmodule StaticModule do
+    use Secant.Module
+
+    defparam :_measurement, %{
+      description: "static measurement",
+      datatype: double(),
+      readonly: true,
+      default: 0.0
+    }
+  end
+
   setup do
     node_opts = [
       equipment_id: "test_node_#{:rand.uniform(10_000)}",
@@ -397,6 +439,113 @@ defmodule Secant.IntegrationTest do
 
     assert Map.take(map_cmds[:stop], [:description, :argument, :result]) ==
              Map.take(struct_cmds[:stop], [:description, :argument, :result])
+  end
+
+  test "3-tuple module spec forwards opts to init_module" do
+    node_opts = [
+      equipment_id: "cfg_node_opts_#{:rand.uniform(10_000)}",
+      description: "opts forwarding test",
+      port: @port + 2,
+      modules: [
+        {"ch1", ConfigurableModule, [channel: 1]},
+        {"ch2", ConfigurableModule, [channel: 2]}
+      ],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_opts)
+    Process.sleep(100)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 2, [:binary, active: false, packet: :raw])
+
+    :gen_tcp.send(sock, "read ch1:value\n")
+    {_, _, [v1, _]} = parse_response(recv_line(sock))
+
+    :gen_tcp.send(sock, "read ch2:value\n")
+    {_, _, [v2, _]} = parse_response(recv_line(sock))
+
+    :gen_tcp.close(sock)
+
+    assert v1 == 1.0
+    assert v2 == 2.0
+  end
+
+  test "param_defaults overrides initial cached value before first poll" do
+    node_opts = [
+      equipment_id: "cfg_node_defaults_#{:rand.uniform(10_000)}",
+      description: "param_defaults test",
+      port: @port + 3,
+      modules: [
+        {"sensor", StaticModule, [param_defaults: [_measurement: 77.5]]}
+      ],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_defaults)
+    Process.sleep(50)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 3, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "read sensor:_measurement\n")
+    {_, _, [value, _]} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    assert value == 77.5
+  end
+
+  test "runtime properties override compile-time properties in describe" do
+    node_opts = [
+      equipment_id: "cfg_node_props_#{:rand.uniform(10_000)}",
+      description: "runtime properties test",
+      port: @port + 4,
+      modules: [
+        {"sensor", ConfigurableModule,
+         [properties: [_manufacturer: "OverrideCorp", _serial: "XYZ-001"]]}
+      ],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_props)
+    Process.sleep(50)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 4, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    sensor = data["modules"]["sensor"]
+    assert sensor["_manufacturer"] == "OverrideCorp"
+    assert sensor["_serial"] == "XYZ-001"
+  end
+
+  test "two instances of same class have independent configs in describe" do
+    node_opts = [
+      equipment_id: "cfg_node_multi_#{:rand.uniform(10_000)}",
+      description: "multi-instance test",
+      port: @port + 5,
+      modules: [
+        {"mfc1", ConfigurableModule,
+         [properties: [_manufacturer: "Bronkhorst", _serial: "001"], channel: 1]},
+        {"mfc2", ConfigurableModule,
+         [properties: [_manufacturer: "Bronkhorst", _serial: "002"], channel: 2]}
+      ],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_multi)
+    Process.sleep(100)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 5, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    mfc1 = data["modules"]["mfc1"]
+    mfc2 = data["modules"]["mfc2"]
+
+    assert mfc1["_serial"] == "001"
+    assert mfc2["_serial"] == "002"
+    assert mfc1["_manufacturer"] == "Bronkhorst"
+    assert mfc2["_manufacturer"] == "Bronkhorst"
   end
 
   # Helpers
