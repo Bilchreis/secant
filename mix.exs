@@ -21,9 +21,8 @@ defmodule Secant.MixProject do
 
   defp deps do
     [
-      {:jason, git: "https://github.com/michalmuskala/jason.git", tag: "v1.4.4"},
-      {:thousand_island, git: "https://github.com/mtrudel/thousand_island.git", tag: "1.3.9"},
-      {:telemetry, git: "https://github.com/beam-telemetry/telemetry.git", tag: "v1.3.0", override: true}
+      {:jason, "~> 1.4"},
+      {:thousand_island, "~> 1.4"}
     ]
   end
 end
