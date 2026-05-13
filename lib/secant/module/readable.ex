@@ -14,9 +14,10 @@ defmodule Secant.Module.Readable do
       end
   """
 
-  def required_params,   do: [:value, :status]
+  def required_params, do: [:value, :status]
   def required_commands, do: []
-  def class_list,        do: ["Readable"]
+  def class_list, do: ["Readable"]
+  def default_poll_params, do: [:value, :status]
 
   def validate!(mod, params, _commands) do
     param_map = Map.new(params)

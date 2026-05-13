@@ -31,7 +31,7 @@ defmodule Secant.Module.Behaviour do
   @moduledoc "Optional callbacks for user-defined SEC modules."
 
   @callback init_module(opts :: keyword()) :: {:ok, user_state :: term()}
-  @callback do_poll(user_state :: term()) :: {:ok, term()} | {:noreply, term()}
+  @callback do_poll(user_state :: term()) :: {:ok, [atom()], term()} | {:noreply, term()}
 
   @optional_callbacks [init_module: 1, do_poll: 1]
 end
@@ -89,10 +89,10 @@ defmodule Secant.Module do
         mod when is_atom(mod) -> mod.__secant_interface_class__()
       end
 
-    iface_mod              = to_interface_module(interface)
+    iface_mod = to_interface_module(interface)
     {req_params, req_cmds} = interface_requirements(interface)
-    iface_classes          = interface_class_list(interface)
-    iface_label            = interface_label(interface)
+    iface_classes = interface_class_list(interface)
+    iface_label = interface_label(interface)
 
     quote do
       @behaviour Secant.Module.Behaviour
@@ -105,12 +105,21 @@ defmodule Secant.Module do
       Module.register_attribute(__MODULE__, :secant_implementation, [])
 
       @secant_interface_classes unquote(iface_classes)
-      @secant_interface_label   unquote(iface_label)
-      @secant_req_params        unquote(req_params)
-      @secant_req_cmds          unquote(req_cmds)
-      @secant_iface_mod         unquote(iface_mod)
+      @secant_interface_label unquote(iface_label)
+      @secant_req_params unquote(req_params)
+      @secant_req_cmds unquote(req_cmds)
+      @secant_iface_mod unquote(iface_mod)
 
-      import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2, description: 1, features: 1, implementation: 1]
+      import Secant.Module,
+        only: [
+          defparam: 2,
+          defcommand: 2,
+          defproperty: 2,
+          description: 1,
+          features: 1,
+          implementation: 1
+        ]
+
       import Secant.DataType
       alias Secant.DataType, as: DT
       alias Secant.ParamSpec
@@ -122,6 +131,7 @@ defmodule Secant.Module do
 
   defmacro defparam(name, do: block) do
     map_expr = {:%{}, [], spec_block_to_fields(block)}
+
     quote do
       @secant_params {unquote(name), unquote(map_expr)}
     end
@@ -135,6 +145,7 @@ defmodule Secant.Module do
 
   defmacro defcommand(name, do: block) do
     map_expr = {:%{}, [], spec_block_to_fields(block)}
+
     quote do
       @secant_commands {unquote(name), unquote(map_expr)}
     end
@@ -171,16 +182,17 @@ defmodule Secant.Module do
   end
 
   defmacro __before_compile__(env) do
-    iface_classes  = Module.get_attribute(env.module, :secant_interface_classes)
-    iface_label    = Module.get_attribute(env.module, :secant_interface_label)
-    req_params     = Module.get_attribute(env.module, :secant_req_params)
-    req_cmds       = Module.get_attribute(env.module, :secant_req_cmds)
-    iface_mod      = Module.get_attribute(env.module, :secant_iface_mod)
+    iface_classes = Module.get_attribute(env.module, :secant_interface_classes)
+    iface_label = Module.get_attribute(env.module, :secant_interface_label)
+    req_params = Module.get_attribute(env.module, :secant_req_params)
+    req_cmds = Module.get_attribute(env.module, :secant_req_cmds)
+    iface_mod = Module.get_attribute(env.module, :secant_iface_mod)
     mod_description = Module.get_attribute(env.module, :secant_description)
-    mod_features    = Module.get_attribute(env.module, :secant_features) || []
+    mod_features = Module.get_attribute(env.module, :secant_features) || []
+
     mod_implementation =
       Module.get_attribute(env.module, :secant_implementation) ||
-        (Module.split(env.module) |> Enum.join("."))
+        Module.split(env.module) |> Enum.join(".")
 
     user_params =
       env.module
@@ -203,40 +215,38 @@ defmodule Secant.Module do
     validate_interface!(env.module, iface_label, req_params, req_cmds, user_params, user_commands)
     if iface_mod, do: iface_mod.validate!(env.module, user_params, user_commands)
 
+    default_poll_params =
+      if iface_mod != nil and function_exported?(iface_mod, :default_poll_params, 0) do
+        iface_mod.default_poll_params()
+      else
+        nil
+      end
+
+    poll_impl =
+      if default_poll_params do
+        quote do: {:ok, unquote(default_poll_params), user_state}
+      else
+        quote do: {:ok, __secant_params__() |> Keyword.keys(), user_state}
+      end
+
     quote do
-      def __secant_params__,            do: unquote(Macro.escape(user_params))
-      def __secant_commands__,          do: unquote(Macro.escape(user_commands))
-      def __secant_properties__,        do: unquote(Macro.escape(properties))
+      def __secant_params__, do: unquote(Macro.escape(user_params))
+      def __secant_commands__, do: unquote(Macro.escape(user_commands))
+      def __secant_properties__, do: unquote(Macro.escape(properties))
       def __secant_interface_classes__, do: unquote(iface_classes)
-      def __secant_description__,       do: unquote(mod_description)
-      def __secant_features__,          do: unquote(mod_features)
-      def __secant_implementation__,    do: unquote(mod_implementation)
+      def __secant_description__, do: unquote(mod_description)
+      def __secant_features__, do: unquote(mod_features)
+      def __secant_implementation__, do: unquote(mod_implementation)
 
       @impl Secant.Module.Behaviour
       def init_module(_opts), do: {:ok, %{}}
 
       @impl Secant.Module.Behaviour
       def do_poll(user_state) do
-        params = __secant_params__()
-
-        new_state =
-          Enum.reduce(params, user_state, fn {name, _spec}, st ->
-            read_fn = :"read_#{name}"
-
-            if function_exported?(__MODULE__, read_fn, 1) do
-              case apply(__MODULE__, read_fn, [st]) do
-                {:ok, _val, new_st} -> new_st
-                {:error, _, new_st} -> new_st
-              end
-            else
-              st
-            end
-          end)
-
-        {:ok, new_state}
+        unquote(poll_impl)
       end
 
-      defoverridable [init_module: 1, do_poll: 1]
+      defoverridable init_module: 1, do_poll: 1
     end
   end
 
@@ -278,6 +288,7 @@ defmodule Secant.Module do
   defp validate_names!(mod, params, commands, properties) do
     Enum.each(params, fn {name, _} ->
       name_str = Atom.to_string(name)
+
       unless name_str in @standard_params or String.starts_with?(name_str, "_") do
         raise CompileError,
           file: "#{mod}",
@@ -289,6 +300,7 @@ defmodule Secant.Module do
 
     Enum.each(commands, fn {name, _} ->
       name_str = Atom.to_string(name)
+
       unless name_str in @standard_commands or String.starts_with?(name_str, "_") do
         raise CompileError,
           file: "#{mod}",
@@ -300,18 +312,18 @@ defmodule Secant.Module do
 
     Enum.each(properties, fn {name, _} ->
       name_str = Atom.to_string(name)
+
       unless String.starts_with?(name_str, "_") do
         raise CompileError,
           file: "#{mod}",
-          description:
-            "Module property '#{name}' must be prefixed with '_' (e.g. :_#{name})."
+          description: "Module property '#{name}' must be prefixed with '_' (e.g. :_#{name})."
       end
     end)
   end
 
   defp validate_interface!(mod, label, req_params, req_cmds, params, commands) do
     param_names = Enum.map(params, &elem(&1, 0))
-    cmd_names   = Enum.map(commands, &elem(&1, 0))
+    cmd_names = Enum.map(commands, &elem(&1, 0))
 
     Enum.each(req_params, fn name ->
       unless name in param_names do
@@ -334,32 +346,44 @@ defmodule Secant.Module do
     end)
   end
 
-  defp to_interface_module(nil),       do: nil
+  defp to_interface_module(nil), do: nil
   defp to_interface_module(:readable), do: Secant.Module.Readable
   defp to_interface_module(:writable), do: Secant.Module.Writable
   defp to_interface_module(:drivable), do: Secant.Module.Drivable
-  defp to_interface_module(%Secant.InterfaceClass{extends: parent}), do: to_interface_module(parent)
+
+  defp to_interface_module(%Secant.InterfaceClass{extends: parent}),
+    do: to_interface_module(parent)
 
   defp interface_requirements(nil), do: {[], []}
+
   defp interface_requirements(atom) when atom in [:readable, :writable, :drivable] do
     mod = to_interface_module(atom)
     {mod.required_params(), mod.required_commands()}
   end
-  defp interface_requirements(%Secant.InterfaceClass{extends: parent, requires_params: rp, requires_commands: rc}) do
+
+  defp interface_requirements(%Secant.InterfaceClass{
+         extends: parent,
+         requires_params: rp,
+         requires_commands: rc
+       }) do
     {base_params, base_cmds} = interface_requirements(parent)
     {Enum.uniq(base_params ++ rp), Enum.uniq(base_cmds ++ rc)}
   end
 
   defp interface_label(nil), do: "Module"
+
   defp interface_label(atom) when atom in [:readable, :writable, :drivable] do
     atom |> to_interface_module() |> then(fn mod -> hd(mod.class_list()) end)
   end
+
   defp interface_label(%Secant.InterfaceClass{name: name}), do: name
 
   defp interface_class_list(nil), do: []
+
   defp interface_class_list(atom) when atom in [:readable, :writable, :drivable] do
     to_interface_module(atom).class_list()
   end
+
   defp interface_class_list(%Secant.InterfaceClass{name: name, extends: parent}) do
     [name | interface_class_list(parent)]
   end

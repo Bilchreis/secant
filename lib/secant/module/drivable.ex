@@ -16,9 +16,10 @@ defmodule Secant.Module.Drivable do
       end
   """
 
-  def required_params,   do: [:value, :status, :target]
+  def required_params, do: [:value, :status, :target]
   def required_commands, do: [:stop]
-  def class_list,        do: ["Drivable", "Writable", "Readable"]
+  def class_list, do: ["Drivable", "Writable", "Readable"]
+  def default_poll_params, do: [:value, :target, :status]
 
   def validate!(mod, params, commands) do
     Secant.Module.Writable.validate!(mod, params, commands)

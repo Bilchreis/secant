@@ -7,20 +7,24 @@ defmodule Secant.ModuleTest do
   defmodule TestReadable do
     use Secant.Module.Readable
 
-    description "Test readable module"
-    defproperty :_manufacturer, "TestCorp"
+    description("Test readable module")
+    defproperty(:_manufacturer, "TestCorp")
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "test reading",
       datatype: double(min: 0, max: 100, unit: "K"),
       readonly: true
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true
-    }
+    })
 
     @impl Secant.Module.Readable
     def read_value(state), do: {:ok, 42.0, state}
@@ -29,80 +33,92 @@ defmodule Secant.ModuleTest do
   defmodule TestDrivable do
     use Secant.Module.Drivable
 
-    description "Test drivable module"
+    description("Test drivable module")
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "current value",
       datatype: double(),
       readonly: true
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true
-    }
+    })
 
-    defparam :target, %{
+    defparam(:target, %{
       description: "target value",
       datatype: double(),
       readonly: false
-    }
+    })
 
-    defparam :_custom_param, %{
+    defparam(:_custom_param, %{
       description: "a custom parameter",
       datatype: string(),
       readonly: true
-    }
+    })
 
-    defcommand :stop, %{description: "Stop", argument: :null, result: :null}
-    defcommand :_custom_cmd, %{description: "custom command", argument: :null, result: :null}
+    defcommand(:stop, %{description: "Stop", argument: :null, result: :null})
+    defcommand(:_custom_cmd, %{description: "custom command", argument: :null, result: :null})
   end
 
   defmodule TestWithCustomCommand do
     use Secant.Module
 
-    description "Module with custom command"
+    description("Module with custom command")
 
-    defcommand :_my_cmd, %{description: "custom", argument: :null, result: :null}
+    defcommand(:_my_cmd, %{description: "custom", argument: :null, result: :null})
   end
 
   defmodule TestWithImplementation do
     use Secant.Module.Readable
 
-    description "Readable module with custom implementation string"
-    implementation "my_app.sensors.thermometer"
+    description("Readable module with custom implementation string")
+    implementation("my_app.sensors.thermometer")
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "current reading",
       datatype: double(unit: "K"),
       readonly: true
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true
-    }
+    })
   end
 
   defmodule TestWithFeatures do
     use Secant.Module.Readable
 
-    description "Readable module with features declared"
-    features ["has_target", "pausable"]
+    description("Readable module with features declared")
+    features(["has_target", "pausable"])
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "current reading",
       datatype: double(unit: "K"),
       readonly: true
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true
-    }
+    })
   end
 
   describe "interface class injection" do
@@ -129,7 +145,12 @@ defmodule Secant.ModuleTest do
     test "value param spec matches declaration" do
       params = TestReadable.__secant_params__()
       {_, value_spec} = Enum.find(params, fn {n, _} -> n == :value end)
-      assert Map.get(value_spec, :datatype) == %Secant.DataType.Double{min: 0, max: 100, unit: "K"}
+
+      assert Map.get(value_spec, :datatype) == %Secant.DataType.Double{
+               min: 0,
+               max: 100,
+               unit: "K"
+             }
     end
 
     test "drivable has value, status, and target" do
@@ -269,7 +290,8 @@ defmodule Secant.ModuleTest do
     end
 
     test "bare module defaults to its full module name" do
-      assert TestWithCustomCommand.__secant_implementation__() == "Secant.ModuleTest.TestWithCustomCommand"
+      assert TestWithCustomCommand.__secant_implementation__() ==
+               "Secant.ModuleTest.TestWithCustomCommand"
     end
   end
 
@@ -333,19 +355,23 @@ defmodule Secant.ModuleTest do
     defmodule TestCustomModule do
       use TestCustomClass
 
-      description "Custom class test module"
+      description("Custom class test module")
 
-      defparam :value, %{description: "current value", datatype: double(), readonly: true}
+      defparam(:value, %{description: "current value", datatype: double(), readonly: true})
 
-      defparam :status, %{
+      defparam(:status, %{
         description: "module status",
-        datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+        datatype:
+          tuple([
+            enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+            string()
+          ]),
         readonly: true
-      }
+      })
 
-      defparam :target, %{description: "target value", datatype: double(), readonly: false}
-      defparam :ramp,   %{description: "ramp rate",    datatype: double(), readonly: false}
-      defcommand :stop, %{description: "Stop", argument: :null, result: :null}
+      defparam(:target, %{description: "target value", datatype: double(), readonly: false})
+      defparam(:ramp, %{description: "ramp rate", datatype: double(), readonly: false})
+      defcommand(:stop, %{description: "Stop", argument: :null, result: :null})
     end
 
     test "produces correct interface_classes list" do
@@ -400,8 +426,10 @@ defmodule Secant.ModuleTest do
       assert {:ok, %{}} = TestReadable.init_module([])
     end
 
-    test "do_poll returns ok" do
-      assert {:ok, _} = TestReadable.do_poll(%{})
+    test "do_poll returns param list for readable interface" do
+      assert {:ok, param_names, _state} = TestReadable.do_poll(%{})
+      assert :value in param_names
+      assert :status in param_names
     end
   end
 
