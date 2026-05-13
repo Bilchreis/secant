@@ -16,7 +16,7 @@ defmodule Secant.Module.Readable do
 
   def required_params,   do: [:value, :status]
   def required_commands, do: []
-  def class_list,        do: ["Readable", "Module"]
+  def class_list,        do: ["Readable"]
 
   def validate!(mod, params, _commands) do
     param_map = Map.new(params)

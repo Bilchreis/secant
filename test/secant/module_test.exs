@@ -69,15 +69,15 @@ defmodule Secant.ModuleTest do
 
   describe "interface class injection" do
     test "readable gets correct interface classes" do
-      assert TestReadable.__secant_interface_classes__() == ["Readable", "Module"]
+      assert TestReadable.__secant_interface_classes__() == ["Readable"]
     end
 
     test "drivable gets correct interface classes" do
-      assert TestDrivable.__secant_interface_classes__() == ["Drivable", "Writable", "Readable", "Module"]
+      assert TestDrivable.__secant_interface_classes__() == ["Drivable", "Writable", "Readable"]
     end
 
-    test "module interface class" do
-      assert TestWithCustomCommand.__secant_interface_classes__() == ["Module"]
+    test "bare module has no interface classes" do
+      assert TestWithCustomCommand.__secant_interface_classes__() == []
     end
   end
 
@@ -284,7 +284,7 @@ defmodule Secant.ModuleTest do
 
     test "produces correct interface_classes list" do
       assert TestCustomModule.__secant_interface_classes__() ==
-               ["TestController", "Drivable", "Writable", "Readable", "Module"]
+               ["TestController", "Drivable", "Writable", "Readable"]
     end
 
     test "missing extra required param raises CompileError" do

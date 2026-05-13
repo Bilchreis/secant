@@ -336,7 +336,7 @@ defmodule Secant.Module do
   end
   defp interface_label(%Secant.InterfaceClass{name: name}), do: name
 
-  defp interface_class_list(nil), do: ["Module"]
+  defp interface_class_list(nil), do: []
   defp interface_class_list(atom) when atom in [:readable, :writable, :drivable] do
     to_interface_module(atom).class_list()
   end

@@ -14,7 +14,7 @@ defmodule Secant.InterfaceClass do
 
       defmodule MyApp.TempSensor do
         use MyApp.MyTemperatureController
-        # interface_classes: ["MyTemperatureController", "Drivable", "Writable", "Readable", "Module"]
+        # interface_classes: ["MyTemperatureController", "Drivable", "Writable", "Readable"]
         # required: value, status, target, ramp params + stop command
       end
   """
