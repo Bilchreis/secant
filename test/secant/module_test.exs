@@ -67,6 +67,44 @@ defmodule Secant.ModuleTest do
     defcommand :_my_cmd, %{description: "custom", argument: :null, result: :null}
   end
 
+  defmodule TestWithImplementation do
+    use Secant.Module.Readable
+
+    description "Readable module with custom implementation string"
+    implementation "my_app.sensors.thermometer"
+
+    defparam :value, %{
+      description: "current reading",
+      datatype: double(unit: "K"),
+      readonly: true
+    }
+
+    defparam :status, %{
+      description: "module status",
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      readonly: true
+    }
+  end
+
+  defmodule TestWithFeatures do
+    use Secant.Module.Readable
+
+    description "Readable module with features declared"
+    features ["has_target", "pausable"]
+
+    defparam :value, %{
+      description: "current reading",
+      datatype: double(unit: "K"),
+      readonly: true
+    }
+
+    defparam :status, %{
+      description: "module status",
+      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      readonly: true
+    }
+  end
+
   describe "interface class injection" do
     test "readable gets correct interface classes" do
       assert TestReadable.__secant_interface_classes__() == ["Readable"]
@@ -218,6 +256,34 @@ defmodule Secant.ModuleTest do
     test "custom properties are collected" do
       props = TestReadable.__secant_properties__()
       assert {:_manufacturer, "TestCorp"} in props
+    end
+  end
+
+  describe "implementation" do
+    test "defaults to full Elixir module name" do
+      assert TestReadable.__secant_implementation__() == "Secant.ModuleTest.TestReadable"
+    end
+
+    test "declared implementation string is returned" do
+      assert TestWithImplementation.__secant_implementation__() == "my_app.sensors.thermometer"
+    end
+
+    test "bare module defaults to its full module name" do
+      assert TestWithCustomCommand.__secant_implementation__() == "Secant.ModuleTest.TestWithCustomCommand"
+    end
+  end
+
+  describe "features" do
+    test "defaults to empty list when not declared" do
+      assert TestReadable.__secant_features__() == []
+    end
+
+    test "declared features are returned" do
+      assert TestWithFeatures.__secant_features__() == ["has_target", "pausable"]
+    end
+
+    test "bare module defaults to empty list" do
+      assert TestWithCustomCommand.__secant_features__() == []
     end
   end
 

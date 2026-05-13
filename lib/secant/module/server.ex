@@ -445,9 +445,10 @@ defmodule Secant.Module.Server do
     module_properties = Map.merge(compile_time_properties, state.runtime_properties)
 
     Map.merge(module_properties, %{
-      "description" => state.description,
+      "description"       => state.description,
       "interface_classes" => state.interface_classes,
-      "accessibles" => all_accessibles
+      "implementation"    => mod.__secant_implementation__(),
+      "accessibles"       => all_accessibles
     })
   end
 
