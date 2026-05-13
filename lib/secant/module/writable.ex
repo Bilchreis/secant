@@ -17,7 +17,7 @@ defmodule Secant.Module.Writable do
 
   def required_params,   do: [:value, :status, :target]
   def required_commands, do: []
-  def class_list,        do: ["Writable", "Readable", "Module"]
+  def class_list,        do: ["Writable", "Readable"]
 
   def validate!(mod, params, commands) do
     Secant.Module.Readable.validate!(mod, params, commands)
