@@ -101,6 +101,8 @@ defmodule Secant.Module do
       Module.register_attribute(__MODULE__, :secant_commands, accumulate: true)
       Module.register_attribute(__MODULE__, :secant_properties, accumulate: true)
       Module.register_attribute(__MODULE__, :secant_description, [])
+      Module.register_attribute(__MODULE__, :secant_features, [])
+      Module.register_attribute(__MODULE__, :secant_implementation, [])
 
       @secant_interface_classes unquote(iface_classes)
       @secant_interface_label   unquote(iface_label)
@@ -108,7 +110,7 @@ defmodule Secant.Module do
       @secant_req_cmds          unquote(req_cmds)
       @secant_iface_mod         unquote(iface_mod)
 
-      import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2, description: 1]
+      import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2, description: 1, features: 1, implementation: 1]
       import Secant.DataType
       alias Secant.DataType, as: DT
       alias Secant.ParamSpec
@@ -156,6 +158,18 @@ defmodule Secant.Module do
     end
   end
 
+  defmacro features(list) do
+    quote do
+      @secant_features unquote(list)
+    end
+  end
+
+  defmacro implementation(string) do
+    quote do
+      @secant_implementation unquote(string)
+    end
+  end
+
   defmacro __before_compile__(env) do
     iface_classes  = Module.get_attribute(env.module, :secant_interface_classes)
     iface_label    = Module.get_attribute(env.module, :secant_interface_label)
@@ -163,6 +177,10 @@ defmodule Secant.Module do
     req_cmds       = Module.get_attribute(env.module, :secant_req_cmds)
     iface_mod      = Module.get_attribute(env.module, :secant_iface_mod)
     mod_description = Module.get_attribute(env.module, :secant_description)
+    mod_features    = Module.get_attribute(env.module, :secant_features) || []
+    mod_implementation =
+      Module.get_attribute(env.module, :secant_implementation) ||
+        (Module.split(env.module) |> Enum.join("."))
 
     user_params =
       env.module
@@ -191,6 +209,8 @@ defmodule Secant.Module do
       def __secant_properties__,        do: unquote(Macro.escape(properties))
       def __secant_interface_classes__, do: unquote(iface_classes)
       def __secant_description__,       do: unquote(mod_description)
+      def __secant_features__,          do: unquote(mod_features)
+      def __secant_implementation__,    do: unquote(mod_implementation)
 
       @impl Secant.Module.Behaviour
       def init_module(_opts), do: {:ok, %{}}
