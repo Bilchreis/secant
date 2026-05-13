@@ -548,8 +548,8 @@ defmodule Secant.DataTypeTest do
   end
 
   describe "encode_value/2" do
-    test "enum encodes integer to name" do
-      assert "IDLE" = DataType.encode_value(100, %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
+    test "enum encodes as integer" do
+      assert 100 = DataType.encode_value(100, %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
     end
 
     test "double stays float" do
@@ -568,10 +568,10 @@ defmodule Secant.DataTypeTest do
       assert result["label"] == "origin"
     end
 
-    test "array of enum encodes each element to name" do
+    test "array of enum encodes each element as integer" do
       members = %{"OFF" => 0, "ON" => 1}
 
-      assert ["OFF", "ON", "OFF"] =
+      assert [0, 1, 0] =
                DataType.encode_value([0, 1, 0], %DataType.Array{type: %DataType.Enum{members: members}})
     end
 
@@ -607,7 +607,7 @@ defmodule Secant.DataTypeTest do
           ]
         }
 
-      assert [[1.0, 2.0], ["A", "B"]] =
+      assert [[1.0, 2.0], [1, 2]] =
                DataType.encode_value([[1, 2], [1, 2]], type)
     end
 
@@ -620,7 +620,7 @@ defmodule Secant.DataTypeTest do
           ]
         }
 
-      assert [%{"v" => 1.0}, %{"s" => "X"}] =
+      assert [%{"v" => 1.0}, %{"s" => 10}] =
                DataType.encode_value([%{"v" => 1}, %{"s" => 10}], type)
     end
   end

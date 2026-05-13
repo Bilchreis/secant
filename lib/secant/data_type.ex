@@ -302,9 +302,7 @@ defmodule Secant.DataType do
   def encode_value(v, %Int{}), do: v
   def encode_value(v, %Secant.DataType.String{}), do: v
   def encode_value(v, %Bool{}), do: v
-  def encode_value(v, %Secant.DataType.Enum{members: members}) when is_integer(v) do
-    Enum.find_value(members, v, fn {name, val} -> if val == v, do: name end)
-  end
+  def encode_value(v, %Secant.DataType.Enum{}) when is_integer(v), do: v
   def encode_value(v, %Tuple{types: types}) when is_list(v) do
     Enum.zip(v, types) |> Enum.map(fn {elem, t} -> encode_value(elem, t) end)
   end
