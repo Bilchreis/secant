@@ -5,6 +5,8 @@ defmodule Secant.DiscoveryTest do
 
   defmodule EmptyModule do
     use Secant.Module
+
+    description "Empty test module"
   end
 
   setup do

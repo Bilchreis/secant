@@ -100,6 +100,7 @@ defmodule Secant.Module do
       Module.register_attribute(__MODULE__, :secant_params, accumulate: true)
       Module.register_attribute(__MODULE__, :secant_commands, accumulate: true)
       Module.register_attribute(__MODULE__, :secant_properties, accumulate: true)
+      Module.register_attribute(__MODULE__, :secant_description, [])
 
       @secant_interface_classes unquote(iface_classes)
       @secant_interface_label   unquote(iface_label)
@@ -107,7 +108,7 @@ defmodule Secant.Module do
       @secant_req_cmds          unquote(req_cmds)
       @secant_iface_mod         unquote(iface_mod)
 
-      import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2]
+      import Secant.Module, only: [defparam: 2, defcommand: 2, defproperty: 2, description: 1]
       import Secant.DataType
       alias Secant.DataType, as: DT
       alias Secant.ParamSpec
@@ -149,12 +150,19 @@ defmodule Secant.Module do
     end
   end
 
+  defmacro description(text) do
+    quote do
+      @secant_description unquote(text)
+    end
+  end
+
   defmacro __before_compile__(env) do
-    iface_classes = Module.get_attribute(env.module, :secant_interface_classes)
-    iface_label   = Module.get_attribute(env.module, :secant_interface_label)
-    req_params    = Module.get_attribute(env.module, :secant_req_params)
-    req_cmds      = Module.get_attribute(env.module, :secant_req_cmds)
-    iface_mod     = Module.get_attribute(env.module, :secant_iface_mod)
+    iface_classes  = Module.get_attribute(env.module, :secant_interface_classes)
+    iface_label    = Module.get_attribute(env.module, :secant_interface_label)
+    req_params     = Module.get_attribute(env.module, :secant_req_params)
+    req_cmds       = Module.get_attribute(env.module, :secant_req_cmds)
+    iface_mod      = Module.get_attribute(env.module, :secant_iface_mod)
+    mod_description = Module.get_attribute(env.module, :secant_description)
 
     user_params =
       env.module
@@ -172,6 +180,8 @@ defmodule Secant.Module do
       |> Enum.reverse()
 
     validate_names!(env.module, user_params, user_commands, properties)
+    validate_descriptions!(env.module, user_params, user_commands)
+    validate_module_description!(env.module, mod_description)
     validate_interface!(env.module, iface_label, req_params, req_cmds, user_params, user_commands)
     if iface_mod, do: iface_mod.validate!(env.module, user_params, user_commands)
 
@@ -180,6 +190,7 @@ defmodule Secant.Module do
       def __secant_commands__,          do: unquote(Macro.escape(user_commands))
       def __secant_properties__,        do: unquote(Macro.escape(properties))
       def __secant_interface_classes__, do: unquote(iface_classes)
+      def __secant_description__,       do: unquote(mod_description)
 
       @impl Secant.Module.Behaviour
       def init_module(_opts), do: {:ok, %{}}
@@ -210,6 +221,39 @@ defmodule Secant.Module do
   end
 
   # --- private compile-time helpers ---
+
+  defp validate_descriptions!(mod, params, commands) do
+    Enum.each(params, fn {name, spec} ->
+      unless valid_description?(extract_description(spec)) do
+        raise CompileError,
+          file: "#{mod}",
+          description: "Parameter '#{name}' must have a non-empty :description."
+      end
+    end)
+
+    Enum.each(commands, fn {name, spec} ->
+      unless valid_description?(extract_description(spec)) do
+        raise CompileError,
+          file: "#{mod}",
+          description: "Command '#{name}' must have a non-empty :description."
+      end
+    end)
+  end
+
+  defp validate_module_description!(mod, desc) do
+    unless valid_description?(desc) do
+      raise CompileError,
+        file: "#{mod}",
+        description:
+          "Module must have a non-empty description. " <>
+            "Add: description \"your description\""
+    end
+  end
+
+  defp valid_description?(desc), do: is_binary(desc) and desc != ""
+
+  defp extract_description(spec) when is_map(spec), do: Map.get(spec, :description)
+  defp extract_description(_), do: nil
 
   defp validate_names!(mod, params, commands, properties) do
     Enum.each(params, fn {name, _} ->

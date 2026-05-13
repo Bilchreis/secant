@@ -7,6 +7,7 @@ defmodule Secant.IntegrationTest do
   defmodule TempModule do
     use Secant.Module.Drivable
 
+    description "Temperature controller module"
     defproperty :_manufacturer, "TestCorp"
 
     defparam :value, %{
@@ -47,6 +48,7 @@ defmodule Secant.IntegrationTest do
   defmodule TempModuleBlock do
     use Secant.Module.Drivable
 
+    description "Temperature controller module"
     defproperty :_manufacturer, "TestCorp"
 
     defparam :value do
@@ -91,6 +93,7 @@ defmodule Secant.IntegrationTest do
   defmodule TempModuleStructSpec do
     use Secant.Module.Drivable
 
+    description "Temperature controller module"
     defproperty :_manufacturer, "TestCorp"
 
     defparam :value, %ParamSpec{
@@ -137,6 +140,7 @@ defmodule Secant.IntegrationTest do
   defmodule ConfigurableModule do
     use Secant.Module.Readable
 
+    description "Configurable sensor module"
     defproperty :_manufacturer, "DefaultCorp"
 
     defparam :value, %{
@@ -166,6 +170,8 @@ defmodule Secant.IntegrationTest do
   # Module with no read callbacks — reads always return the cached (or param_defaults) value
   defmodule StaticModule do
     use Secant.Module
+
+    description "Static measurement module"
 
     defparam :_measurement, %{
       description: "static measurement",
@@ -515,6 +521,46 @@ defmodule Secant.IntegrationTest do
     sensor = data["modules"]["sensor"]
     assert sensor["_manufacturer"] == "OverrideCorp"
     assert sensor["_serial"] == "XYZ-001"
+  end
+
+  test "runtime description overrides compile-time description in describe" do
+    node_opts = [
+      equipment_id: "cfg_node_desc_#{:rand.uniform(10_000)}",
+      description: "runtime description test",
+      port: @port + 6,
+      modules: [{"temp", TempModule, [description: "Overridden at runtime"]}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_desc)
+    Process.sleep(50)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 6, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    assert data["modules"]["temp"]["description"] == "Overridden at runtime"
+  end
+
+  test "compile-time description is used when no runtime override given" do
+    node_opts = [
+      equipment_id: "cfg_node_desc_fallback_#{:rand.uniform(10_000)}",
+      description: "description fallback test",
+      port: @port + 7,
+      modules: [{"temp", TempModule}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :cfg_node_desc_fallback)
+    Process.sleep(50)
+
+    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 7, [:binary, active: false, packet: :raw])
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    assert data["modules"]["temp"]["description"] == TempModule.__secant_description__()
   end
 
   test "two instances of same class have independent configs in describe" do

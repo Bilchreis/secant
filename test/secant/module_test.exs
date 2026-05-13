@@ -7,6 +7,7 @@ defmodule Secant.ModuleTest do
   defmodule TestReadable do
     use Secant.Module.Readable
 
+    description "Test readable module"
     defproperty :_manufacturer, "TestCorp"
 
     defparam :value, %{
@@ -27,6 +28,8 @@ defmodule Secant.ModuleTest do
 
   defmodule TestDrivable do
     use Secant.Module.Drivable
+
+    description "Test drivable module"
 
     defparam :value, %{
       description: "current value",
@@ -58,6 +61,8 @@ defmodule Secant.ModuleTest do
 
   defmodule TestWithCustomCommand do
     use Secant.Module
+
+    description "Module with custom command"
 
     defcommand :_my_cmd, %{description: "custom", argument: :null, result: :null}
   end
@@ -120,6 +125,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatus do
           use Secant.Module, interface: :readable
+          description "bad status module"
           defparam :value, %{description: "v", datatype: double(), readonly: true}
           defparam :status, %{description: "s", datatype: tuple([int(), string()]), readonly: true}
         end
@@ -132,6 +138,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatusEnum do
           use Secant.Module, interface: :readable
+          description "bad status enum module"
           defparam :value, %{description: "v", datatype: double(), readonly: true}
           defparam :status, %{description: "s", datatype: tuple([enum(%{"IDLE" => 100, "BAD" => 500}), string()]), readonly: true}
         end
@@ -144,6 +151,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule BadStatusString do
           use Secant.Module, interface: :readable
+          description "bad status string module"
           defparam :value, %{description: "v", datatype: double(), readonly: true}
           defparam :status, %{description: "s", datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), int()]), readonly: true}
         end
@@ -156,6 +164,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule TypeMismatch do
           use Secant.Module, interface: :writable
+          description "type mismatch module"
           defparam :value, %{description: "v", datatype: double(), readonly: true}
           defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
           defparam :target, %{description: "t", datatype: int(), readonly: false}
@@ -169,6 +178,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule MinMismatch do
           use Secant.Module, interface: :writable
+          description "min mismatch module"
           defparam :value, %{description: "v", datatype: double(min: 20.0, max: 400.0), readonly: true}
           defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
           defparam :target, %{description: "t", datatype: double(min: 0.0, max: 400.0), readonly: false}
@@ -182,6 +192,7 @@ defmodule Secant.ModuleTest do
         Code.eval_string("""
         defmodule MaxMismatch do
           use Secant.Module, interface: :writable
+          description "max mismatch module"
           defparam :value, %{description: "v", datatype: double(min: 0.0, max: 350.0), readonly: true}
           defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
           defparam :target, %{description: "t", datatype: double(min: 0.0, max: 400.0), readonly: false}
@@ -194,6 +205,7 @@ defmodule Secant.ModuleTest do
       Code.eval_string("""
       defmodule ValidRange do
         use Secant.Module, interface: :writable
+        description "valid range module"
         defparam :value, %{description: "v", datatype: double(min: 0.0, max: 400.0), readonly: true}
         defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
         defparam :target, %{description: "t", datatype: double(min: 20.0, max: 350.0), readonly: false}
@@ -255,6 +267,8 @@ defmodule Secant.ModuleTest do
     defmodule TestCustomModule do
       use TestCustomClass
 
+      description "Custom class test module"
+
       defparam :value, %{description: "current value", datatype: double(), readonly: true}
 
       defparam :status, %{
@@ -282,6 +296,7 @@ defmodule Secant.ModuleTest do
           end
           defmodule Mod do
             use Ctrl
+            description "missing ramp module"
             defparam :value,  %{description: "v", datatype: double(), readonly: true}
             defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
             defparam :target, %{description: "t", datatype: double(), readonly: false}
@@ -301,6 +316,7 @@ defmodule Secant.ModuleTest do
           end
           defmodule Mod2 do
             use Ctrl2
+            description "custom type mismatch module"
             defparam :value,  %{description: "v", datatype: double(), readonly: true}
             defparam :status, %{description: "s", datatype: #{@status_datatype}, readonly: true}
             defparam :target, %{description: "t", datatype: int(),    readonly: false}
@@ -320,6 +336,67 @@ defmodule Secant.ModuleTest do
 
     test "do_poll returns ok" do
       assert {:ok, _} = TestReadable.do_poll(%{})
+    end
+  end
+
+  describe "description enforcement" do
+    test "module without description raises CompileError" do
+      assert_raise CompileError, ~r/non-empty description/, fn ->
+        Code.eval_string("""
+        defmodule NoDescription do
+          use Secant.Module
+          defcommand :_my_cmd, %{description: "cmd", argument: :null, result: :null}
+        end
+        """)
+      end
+    end
+
+    test "module with empty description raises CompileError" do
+      assert_raise CompileError, ~r/non-empty description/, fn ->
+        Code.eval_string("""
+        defmodule EmptyDescription do
+          use Secant.Module
+          description ""
+          defcommand :_my_cmd, %{description: "cmd", argument: :null, result: :null}
+        end
+        """)
+      end
+    end
+
+    test "parameter with empty description raises CompileError" do
+      assert_raise CompileError, ~r/non-empty :description/, fn ->
+        Code.eval_string("""
+        defmodule EmptyParamDesc do
+          use Secant.Module
+          description "valid module description"
+          defparam :_foo, %{description: "", datatype: double(), readonly: true}
+        end
+        """)
+      end
+    end
+
+    test "parameter with nil description raises CompileError" do
+      assert_raise CompileError, ~r/non-empty :description/, fn ->
+        Code.eval_string("""
+        defmodule NilParamDesc do
+          use Secant.Module
+          description "valid module description"
+          defparam :_foo, %{description: nil, datatype: double(), readonly: true}
+        end
+        """)
+      end
+    end
+
+    test "command with empty description raises CompileError" do
+      assert_raise CompileError, ~r/non-empty :description/, fn ->
+        Code.eval_string("""
+        defmodule EmptyCommandDesc do
+          use Secant.Module
+          description "valid module description"
+          defcommand :_my_cmd, %{description: "", argument: :null, result: :null}
+        end
+        """)
+      end
     end
   end
 end

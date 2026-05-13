@@ -49,8 +49,9 @@ defmodule Secant.Module.Server do
       |> Keyword.get(:properties, [])
       |> Map.new(fn {k, v} -> {to_string(k), v} end)
 
+    description_override = Keyword.get(opts, :description)
     param_defaults = Keyword.get(opts, :param_defaults, [])
-    init_opts = Keyword.drop(opts, [:properties, :param_defaults])
+    init_opts = Keyword.drop(opts, [:properties, :param_defaults, :description])
 
     param_specs = build_param_specs(mod)
     command_specs = build_command_specs(mod)
@@ -71,9 +72,13 @@ defmodule Secant.Module.Server do
       end
 
     description =
-      if function_exported?(mod, :__secant_description__, 0),
-        do: mod.__secant_description__(),
-        else: ""
+      if is_binary(description_override) and description_override != "" do
+        description_override
+      else
+        if function_exported?(mod, :__secant_description__, 0),
+          do: mod.__secant_description__(),
+          else: ""
+      end
 
     poll_interval_ms =
       case get_in(param_specs, [:pollinterval, :default]) do

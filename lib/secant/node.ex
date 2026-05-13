@@ -36,6 +36,11 @@ defmodule Secant.Node do
   def init(opts) do
     equipment_id = Keyword.fetch!(opts, :equipment_id)
     description = Keyword.get(opts, :description, "")
+
+    unless is_binary(description) and description != "" do
+      raise ArgumentError, "Node :description must be a non-empty string"
+    end
+
     port = Keyword.get(opts, :port, 10767)
     modules = Keyword.get(opts, :modules, [])
     raw_properties = Keyword.get(opts, :properties, [])
