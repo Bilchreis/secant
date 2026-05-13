@@ -186,12 +186,14 @@ defmodule Secant.DataType do
 
   def validate(v, %Double{min: min, max: max}) when is_number(v) do
     v = v * 1.0
+
     cond do
       min != nil and v < min -> {:error, Errors.range_error("value #{v} below min #{min}")}
       max != nil and v > max -> {:error, Errors.range_error("value #{v} above max #{max}")}
       true -> {:ok, v}
     end
   end
+
   def validate(_, %Double{}), do: {:error, Errors.wrong_type("expected a number")}
 
   def validate(v, %Int{min: min, max: max}) when is_integer(v) do
@@ -201,11 +203,15 @@ defmodule Secant.DataType do
       true -> {:ok, v}
     end
   end
+
   def validate(v, %Int{} = type) when is_float(v) do
     i = trunc(v)
-    if i == v, do: validate(i, type),
-               else: {:error, Errors.wrong_type("expected integer")}
+
+    if i == v,
+      do: validate(i, type),
+      else: {:error, Errors.wrong_type("expected integer")}
   end
+
   def validate(_, %Int{}), do: {:error, Errors.wrong_type("expected integer")}
 
   def validate(v, %Secant.DataType.String{maxchars: maxchars}) when is_binary(v) do
@@ -215,6 +221,7 @@ defmodule Secant.DataType do
       {:ok, v}
     end
   end
+
   def validate(_, %Secant.DataType.String{}), do: {:error, Errors.wrong_type("expected string")}
 
   def validate(v, %Bool{}) when is_boolean(v), do: {:ok, v}
@@ -229,17 +236,21 @@ defmodule Secant.DataType do
       {:error, Errors.range_error("enum value #{v} not in #{inspect(Map.values(members))}")}
     end
   end
+
   def validate(v, %Secant.DataType.Enum{members: members}) when is_binary(v) do
     case Map.fetch(members, v) do
       {:ok, int_val} -> {:ok, int_val}
       :error -> {:error, Errors.bad_value("unknown enum member '#{v}'")}
     end
   end
-  def validate(_, %Secant.DataType.Enum{}), do: {:error, Errors.wrong_type("expected integer or string")}
+
+  def validate(_, %Secant.DataType.Enum{}),
+    do: {:error, Errors.wrong_type("expected integer or string")}
 
   def validate(v, %Tuple{types: types}) when is_list(v) do
     if length(v) != length(types) do
-      {:error, Errors.wrong_type("tuple length mismatch: got #{length(v)}, expected #{length(types)}")}
+      {:error,
+       Errors.wrong_type("tuple length mismatch: got #{length(v)}, expected #{length(types)}")}
     else
       v
       |> Enum.zip(types)
@@ -251,15 +262,19 @@ defmodule Secant.DataType do
       end)
     end
   end
+
   def validate(_, %Tuple{}), do: {:error, Errors.wrong_type("expected list/tuple")}
 
   def validate(v, %Array{type: type, minlen: minlen, maxlen: maxlen}) when is_list(v) do
     min = minlen || 0
+
     cond do
       length(v) < min ->
         {:error, Errors.range_error("array length #{length(v)} below minlen #{min}")}
+
       maxlen != nil and length(v) > maxlen ->
         {:error, Errors.range_error("array length #{length(v)} exceeds maxlen #{maxlen}")}
+
       true ->
         Enum.reduce_while(v, {:ok, []}, fn elem, {:ok, acc} ->
           case validate(elem, type) do
@@ -269,22 +284,26 @@ defmodule Secant.DataType do
         end)
     end
   end
+
   def validate(_, %Array{}), do: {:error, Errors.wrong_type("expected list")}
 
   def validate(v, %Struct{fields: member_types}) when is_map(v) do
     Enum.reduce_while(member_types, {:ok, %{}}, fn {k, type}, {:ok, acc} ->
       key_str = to_string(k)
+
       case Map.fetch(v, key_str) do
         {:ok, elem} ->
           case validate(elem, type) do
             {:ok, coerced} -> {:cont, {:ok, Map.put(acc, key_str, coerced)}}
             err -> {:halt, err}
           end
+
         :error ->
           {:halt, {:error, Errors.bad_value("struct missing key '#{key_str}'")}}
       end
     end)
   end
+
   def validate(_, %Struct{}), do: {:error, Errors.wrong_type("expected map")}
 
   def validate(v, %Blob{maxbytes: maxbytes}) when is_binary(v) do
@@ -294,6 +313,7 @@ defmodule Secant.DataType do
       {:ok, v}
     end
   end
+
   def validate(_, %Blob{}), do: {:error, Errors.wrong_type("expected binary/blob")}
 
   @doc "Convert internal Elixir value to JSON-serialisable form."
@@ -303,12 +323,15 @@ defmodule Secant.DataType do
   def encode_value(v, %Secant.DataType.String{}), do: v
   def encode_value(v, %Bool{}), do: v
   def encode_value(v, %Secant.DataType.Enum{}) when is_integer(v), do: v
+
   def encode_value(v, %Tuple{types: types}) when is_list(v) do
     Enum.zip(v, types) |> Enum.map(fn {elem, t} -> encode_value(elem, t) end)
   end
+
   def encode_value(v, %Array{type: type}) when is_list(v) do
     Enum.map(v, &encode_value(&1, type))
   end
+
   def encode_value(v, %Struct{fields: member_types}) when is_map(v) do
     Map.new(v, fn {k, val} ->
       key = to_string(k)
@@ -316,6 +339,7 @@ defmodule Secant.DataType do
       {key, encode_value(val, type)}
     end)
   end
+
   def encode_value(v, %Blob{}), do: Base.encode64(v)
   def encode_value(v, _), do: v
 

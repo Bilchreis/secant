@@ -7,31 +7,35 @@ defmodule Secant.IntegrationTest do
   defmodule TempModule do
     use Secant.Module.Drivable
 
-    description "Temperature controller module"
-    defproperty :_manufacturer, "TestCorp"
+    description("Temperature controller module")
+    defproperty(:_manufacturer, "TestCorp")
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "temperature",
       datatype: double(min: 0, max: 400, unit: "K"),
       readonly: true,
       default: 300.0
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true,
       default: [100, ""]
-    }
+    })
 
-    defparam :target, %{
+    defparam(:target, %{
       description: "target temperature",
       datatype: double(min: 0, max: 400, unit: "K"),
       readonly: false,
       default: 300.0
-    }
+    })
 
-    defcommand :stop, %{description: "Stop ramping", argument: :null, result: :null}
+    defcommand(:stop, %{description: "Stop ramping", argument: :null, result: :null})
 
     def init_module(_opts), do: {:ok, %{value: 300.0}}
 
@@ -48,34 +52,41 @@ defmodule Secant.IntegrationTest do
   defmodule TempModuleBlock do
     use Secant.Module.Drivable
 
-    description "Temperature controller module"
-    defproperty :_manufacturer, "TestCorp"
+    description("Temperature controller module")
+    defproperty(:_manufacturer, "TestCorp")
 
     defparam :value do
-      description "temperature"
-      datatype double(min: 0, max: 400, unit: "K")
-      readonly true
-      default 300.0
+      description("temperature")
+      datatype(double(min: 0, max: 400, unit: "K"))
+      readonly(true)
+      default(300.0)
     end
 
     defparam :status do
-      description "module status"
-      datatype tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()])
-      readonly true
-      default [100, ""]
+      description("module status")
+
+      datatype(
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ])
+      )
+
+      readonly(true)
+      default([100, ""])
     end
 
     defparam :target do
-      description "target temperature"
-      datatype double(min: 0, max: 400, unit: "K")
-      readonly false
-      default 300.0
+      description("target temperature")
+      datatype(double(min: 0, max: 400, unit: "K"))
+      readonly(false)
+      default(300.0)
     end
 
     defcommand :stop do
-      description "Stop ramping"
-      argument null()
-      result null()
+      description("Stop ramping")
+      argument(null())
+      result(null())
     end
 
     def init_module(_opts), do: {:ok, %{value: 300.0}}
@@ -93,36 +104,40 @@ defmodule Secant.IntegrationTest do
   defmodule TempModuleStructSpec do
     use Secant.Module.Drivable
 
-    description "Temperature controller module"
-    defproperty :_manufacturer, "TestCorp"
+    description("Temperature controller module")
+    defproperty(:_manufacturer, "TestCorp")
 
-    defparam :value, %ParamSpec{
+    defparam(:value, %ParamSpec{
       description: "temperature",
       datatype: double(min: 0, max: 400, unit: "K"),
       readonly: true,
       default: 300.0,
       properties: %{_myproperty: "hello"}
-    }
+    })
 
-    defparam :status, %ParamSpec{
+    defparam(:status, %ParamSpec{
       description: "module status",
-      datatype: tuple([enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}), string()]),
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
       readonly: true,
       default: [100, ""]
-    }
+    })
 
-    defparam :target, %ParamSpec{
+    defparam(:target, %ParamSpec{
       description: "target temperature",
       datatype: double(min: 0, max: 400, unit: "K"),
       readonly: false,
       default: 300.0
-    }
+    })
 
-    defcommand :stop, %CommandSpec{
+    defcommand(:stop, %CommandSpec{
       description: "Stop ramping",
       argument: null(),
       result: null()
-    }
+    })
 
     def init_module(_opts), do: {:ok, %{value: 300.0}}
 
@@ -140,17 +155,17 @@ defmodule Secant.IntegrationTest do
   defmodule ConfigurableModule do
     use Secant.Module.Readable
 
-    description "Configurable sensor module"
-    defproperty :_manufacturer, "DefaultCorp"
+    description("Configurable sensor module")
+    defproperty(:_manufacturer, "DefaultCorp")
 
-    defparam :value, %{
+    defparam(:value, %{
       description: "channel reading",
       datatype: double(min: 0, max: 1000),
       readonly: true,
       default: 0.0
-    }
+    })
 
-    defparam :status, %{
+    defparam(:status, %{
       description: "module status",
       datatype:
         tuple([
@@ -159,7 +174,7 @@ defmodule Secant.IntegrationTest do
         ]),
       readonly: true,
       default: [100, ""]
-    }
+    })
 
     def init_module(opts), do: {:ok, %{channel: Keyword.get(opts, :channel, 0)}}
 
@@ -171,14 +186,14 @@ defmodule Secant.IntegrationTest do
   defmodule StaticModule do
     use Secant.Module
 
-    description "Static measurement module"
+    description("Static measurement module")
 
-    defparam :_measurement, %{
+    defparam(:_measurement, %{
       description: "static measurement",
       datatype: double(),
       readonly: true,
       default: 0.0
-    }
+    })
   end
 
   setup do
@@ -227,8 +242,12 @@ defmodule Secant.IntegrationTest do
     line = String.trim(line)
 
     case String.split(line, " ", parts: 3) do
-      [action] -> {action, nil, nil}
-      [action, spec] -> {action, spec, nil}
+      [action] ->
+        {action, nil, nil}
+
+      [action, spec] ->
+        {action, spec, nil}
+
       [action, spec, json] ->
         {:ok, data} = Jason.decode(json)
         {action, spec, data}
@@ -285,7 +304,6 @@ defmodule Secant.IntegrationTest do
     [value, _quals] = data
     assert value == 350.0
 
-
     send_msg(sock, "read temp:target")
     line = recv_line(sock)
     {action, spec, data} = parse_response(line)
@@ -294,8 +312,6 @@ defmodule Secant.IntegrationTest do
     [value, _quals] = data
     assert value == 350.0
 
-
-
     send_msg(sock, "change temp:target 300.0")
     line = recv_line(sock)
     {action, spec, data} = parse_response(line)
@@ -303,7 +319,6 @@ defmodule Secant.IntegrationTest do
     assert spec == "temp:target"
     [value, _quals] = data
     assert value == 300.0
-
 
     send_msg(sock, "read temp:target")
     line = recv_line(sock)
@@ -342,10 +357,11 @@ defmodule Secant.IntegrationTest do
     # Collect multiple lines — first should be active, then updates
     lines = collect_lines(sock, 5, 500)
 
-    actions = Enum.map(lines, fn l ->
-      {action, _, _} = parse_response(l)
-      action
-    end)
+    actions =
+      Enum.map(lines, fn l ->
+        {action, _, _} = parse_response(l)
+        action
+      end)
 
     assert "active" in actions
     assert Enum.any?(actions, &(&1 == "update"))
@@ -371,11 +387,11 @@ defmodule Secant.IntegrationTest do
   end
 
   test "block DSL produces same specs as map syntax" do
-    map_params   = Map.new(TempModule.__secant_params__())
+    map_params = Map.new(TempModule.__secant_params__())
     block_params = Map.new(TempModuleBlock.__secant_params__())
     assert map_params == block_params
 
-    map_cmds   = Map.new(TempModule.__secant_commands__())
+    map_cmds = Map.new(TempModule.__secant_commands__())
     block_cmds = Map.new(TempModuleBlock.__secant_commands__())
     assert map_cmds == block_cmds
   end
@@ -420,7 +436,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :struct_spec_node)
     Process.sleep(50)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 1, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 1, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "describe\n")
     line = recv_line(sock)
     :gen_tcp.close(sock)
@@ -432,7 +450,7 @@ defmodule Secant.IntegrationTest do
   end
 
   test "struct spec form semantic fields match map syntax" do
-    map_params    = Map.new(TempModule.__secant_params__())
+    map_params = Map.new(TempModule.__secant_params__())
     struct_params = Map.new(TempModuleStructSpec.__secant_params__())
 
     for name <- [:value, :status, :target] do
@@ -440,7 +458,7 @@ defmodule Secant.IntegrationTest do
                Map.take(struct_params[name], [:description, :datatype, :readonly, :default])
     end
 
-    map_cmds    = Map.new(TempModule.__secant_commands__())
+    map_cmds = Map.new(TempModule.__secant_commands__())
     struct_cmds = Map.new(TempModuleStructSpec.__secant_commands__())
 
     assert Map.take(map_cmds[:stop], [:description, :argument, :result]) ==
@@ -462,7 +480,8 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_opts)
     Process.sleep(100)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 2, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 2, [:binary, active: false, packet: :raw])
 
     :gen_tcp.send(sock, "read ch1:value\n")
     {_, _, [v1, _]} = parse_response(recv_line(sock))
@@ -490,7 +509,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_defaults)
     Process.sleep(50)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 3, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 3, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "read sensor:_measurement\n")
     {_, _, [value, _]} = parse_response(recv_line(sock))
     :gen_tcp.close(sock)
@@ -513,7 +534,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_props)
     Process.sleep(50)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 4, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 4, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "describe\n")
     {_, _, data} = parse_response(recv_line(sock))
     :gen_tcp.close(sock)
@@ -535,7 +558,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_desc)
     Process.sleep(50)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 6, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 6, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "describe\n")
     {_, _, data} = parse_response(recv_line(sock))
     :gen_tcp.close(sock)
@@ -555,7 +580,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_desc_fallback)
     Process.sleep(50)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 7, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 7, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "describe\n")
     {_, _, data} = parse_response(recv_line(sock))
     :gen_tcp.close(sock)
@@ -580,7 +607,9 @@ defmodule Secant.IntegrationTest do
     start_supervised!({Secant.Node, node_opts}, id: :cfg_node_multi)
     Process.sleep(100)
 
-    {:ok, sock} = :gen_tcp.connect(~c"127.0.0.1", @port + 5, [:binary, active: false, packet: :raw])
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 5, [:binary, active: false, packet: :raw])
+
     :gen_tcp.send(sock, "describe\n")
     {_, _, data} = parse_response(recv_line(sock))
     :gen_tcp.close(sock)

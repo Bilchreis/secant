@@ -73,7 +73,12 @@ defmodule Secant.Node do
           startup_broadcast: startup_broadcast
         }
 
-        [%{id: {Secant.Discovery, equipment_id}, start: {Secant.Discovery, :start_link, [discovery_opts]}}]
+        [
+          %{
+            id: {Secant.Discovery, equipment_id},
+            start: {Secant.Discovery, :start_link, [discovery_opts]}
+          }
+        ]
       else
         []
       end

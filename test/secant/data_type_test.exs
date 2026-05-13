@@ -29,20 +29,28 @@ defmodule Secant.DataTypeTest do
     end
 
     test "tuple" do
-      info = DataType.to_datainfo(%DataType.Tuple{types: [%DataType.Double{}, %DataType.String{}]})
+      info =
+        DataType.to_datainfo(%DataType.Tuple{types: [%DataType.Double{}, %DataType.String{}]})
+
       assert info["type"] == "tuple"
       assert length(info["members"]) == 2
     end
 
     test "array" do
-      info = DataType.to_datainfo(%DataType.Array{type: %DataType.Double{}, minlen: 1, maxlen: 10})
+      info =
+        DataType.to_datainfo(%DataType.Array{type: %DataType.Double{}, minlen: 1, maxlen: 10})
+
       assert info["type"] == "array"
       assert info["minlen"] == 1
       assert info["maxlen"] == 10
     end
 
     test "struct" do
-      info = DataType.to_datainfo(%DataType.Struct{fields: %{x: %DataType.Double{}, y: %DataType.Double{}}})
+      info =
+        DataType.to_datainfo(%DataType.Struct{
+          fields: %{x: %DataType.Double{}, y: %DataType.Double{}}
+        })
+
       assert info["type"] == "struct"
       assert Map.has_key?(info["members"], "x")
     end
@@ -65,13 +73,19 @@ defmodule Secant.DataTypeTest do
     end
 
     test "array of int" do
-      info = DataType.to_datainfo(%DataType.Array{type: %DataType.Int{min: 0, max: 255}, minlen: 1, maxlen: 8})
+      info =
+        DataType.to_datainfo(%DataType.Array{
+          type: %DataType.Int{min: 0, max: 255},
+          minlen: 1,
+          maxlen: 8
+        })
+
       assert info == %{
-        "type" => "array",
-        "minlen" => 1,
-        "maxlen" => 8,
-        "members" => %{"type" => "int", "min" => 0, "max" => 255}
-      }
+               "type" => "array",
+               "minlen" => 1,
+               "maxlen" => 8,
+               "members" => %{"type" => "int", "min" => 0, "max" => 255}
+             }
     end
 
     test "array of bool" do
@@ -96,13 +110,11 @@ defmodule Secant.DataTypeTest do
 
     test "array of enum" do
       info =
-        DataType.to_datainfo(
-          %DataType.Array{
-            type: %DataType.Enum{members: %{"LOW" => 0, "HIGH" => 1}},
-            minlen: 1,
-            maxlen: 4
-          }
-        )
+        DataType.to_datainfo(%DataType.Array{
+          type: %DataType.Enum{members: %{"LOW" => 0, "HIGH" => 1}},
+          minlen: 1,
+          maxlen: 4
+        })
 
       assert info["type"] == "array"
       assert info["members"]["type"] == "enum"
@@ -113,11 +125,9 @@ defmodule Secant.DataTypeTest do
 
     test "array of struct" do
       info =
-        DataType.to_datainfo(
-          %DataType.Array{
-            type: %DataType.Struct{fields: %{name: %DataType.String{}, value: %DataType.Double{}}}
-          }
-        )
+        DataType.to_datainfo(%DataType.Array{
+          type: %DataType.Struct{fields: %{name: %DataType.String{}, value: %DataType.Double{}}}
+        })
 
       assert info["type"] == "array"
       assert info["members"]["type"] == "struct"
@@ -127,13 +137,11 @@ defmodule Secant.DataTypeTest do
 
     test "array of tuple" do
       info =
-        DataType.to_datainfo(
-          %DataType.Array{
-            type: %DataType.Tuple{types: [%DataType.Double{}, %DataType.Int{min: 0, max: 10}]},
-            minlen: 0,
-            maxlen: 5
-          }
-        )
+        DataType.to_datainfo(%DataType.Array{
+          type: %DataType.Tuple{types: [%DataType.Double{}, %DataType.Int{min: 0, max: 10}]},
+          minlen: 0,
+          maxlen: 5
+        })
 
       assert info["type"] == "array"
       assert info["members"]["type"] == "tuple"
@@ -155,14 +163,12 @@ defmodule Secant.DataTypeTest do
 
     test "tuple of arrays" do
       info =
-        DataType.to_datainfo(
-          %DataType.Tuple{
-            types: [
-              %DataType.Array{type: %DataType.Double{}, minlen: 2, maxlen: 2},
-              %DataType.Array{type: %DataType.String{}, minlen: 1, maxlen: 5}
-            ]
-          }
-        )
+        DataType.to_datainfo(%DataType.Tuple{
+          types: [
+            %DataType.Array{type: %DataType.Double{}, minlen: 2, maxlen: 2},
+            %DataType.Array{type: %DataType.String{}, minlen: 1, maxlen: 5}
+          ]
+        })
 
       assert info["type"] == "tuple"
       assert length(info["members"]) == 2
@@ -175,14 +181,12 @@ defmodule Secant.DataTypeTest do
 
     test "tuple of structs" do
       info =
-        DataType.to_datainfo(
-          %DataType.Tuple{
-            types: [
-              %DataType.Struct{fields: %{x: %DataType.Double{}}},
-              %DataType.Struct{fields: %{label: %DataType.String{}}}
-            ]
-          }
-        )
+        DataType.to_datainfo(%DataType.Tuple{
+          types: [
+            %DataType.Struct{fields: %{x: %DataType.Double{}}},
+            %DataType.Struct{fields: %{label: %DataType.String{}}}
+          ]
+        })
 
       assert info["type"] == "tuple"
       assert length(info["members"]) == 2
@@ -239,7 +243,8 @@ defmodule Secant.DataTypeTest do
     end
 
     test "enum from string" do
-      assert {:ok, 100} = DataType.validate("IDLE", %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
+      assert {:ok, 100} =
+               DataType.validate("IDLE", %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
     end
 
     test "enum invalid member" do
@@ -249,7 +254,9 @@ defmodule Secant.DataTypeTest do
 
     test "tuple valid" do
       assert {:ok, [100, "IDLE"]} =
-               DataType.validate([100, "IDLE"], %DataType.Tuple{types: [%DataType.Int{}, %DataType.String{}]})
+               DataType.validate([100, "IDLE"], %DataType.Tuple{
+                 types: [%DataType.Int{}, %DataType.String{}]
+               })
     end
 
     test "null" do
@@ -294,7 +301,7 @@ defmodule Secant.DataTypeTest do
 
     test "deeply nested struct (three levels)" do
       leaf = %DataType.Struct{fields: %{value: %DataType.Double{min: 0, max: 100}}}
-      mid  = %DataType.Struct{fields: %{sensor: leaf, unit: %DataType.String{}}}
+      mid = %DataType.Struct{fields: %{sensor: leaf, unit: %DataType.String{}}}
       root = %DataType.Struct{fields: %{channel: mid, enabled: %DataType.Bool{}}}
 
       assert {:ok, result} =
@@ -318,12 +325,20 @@ defmodule Secant.DataTypeTest do
   describe "validate/2 - arrays" do
     test "valid array of doubles" do
       assert {:ok, [1.0, 2.0, 3.0]} =
-               DataType.validate([1, 2, 3], %DataType.Array{type: %DataType.Double{}, minlen: 1, maxlen: 5})
+               DataType.validate([1, 2, 3], %DataType.Array{
+                 type: %DataType.Double{},
+                 minlen: 1,
+                 maxlen: 5
+               })
     end
 
     test "array too short" do
       assert {:error, %Secant.Error{name: "RangeError"}} =
-               DataType.validate([], %DataType.Array{type: %DataType.Double{}, minlen: 2, maxlen: 5})
+               DataType.validate([], %DataType.Array{
+                 type: %DataType.Double{},
+                 minlen: 2,
+                 maxlen: 5
+               })
     end
 
     test "array too long" do
@@ -336,7 +351,9 @@ defmodule Secant.DataTypeTest do
 
     test "array of int" do
       assert {:ok, [0, 100, 200]} =
-               DataType.validate([0, 100, 200], %DataType.Array{type: %DataType.Int{min: 0, max: 255}})
+               DataType.validate([0, 100, 200], %DataType.Array{
+                 type: %DataType.Int{min: 0, max: 255}
+               })
     end
 
     test "array of int - element out of range" do
@@ -356,7 +373,9 @@ defmodule Secant.DataTypeTest do
 
     test "array of string" do
       assert {:ok, ["hello", "world"]} =
-               DataType.validate(["hello", "world"], %DataType.Array{type: %DataType.String{maxchars: 10}})
+               DataType.validate(["hello", "world"], %DataType.Array{
+                 type: %DataType.String{maxchars: 10}
+               })
     end
 
     test "array of string - element too long" do
@@ -369,21 +388,27 @@ defmodule Secant.DataTypeTest do
 
     test "array of blob" do
       assert {:ok, ["abc", "de"]} =
-               DataType.validate(["abc", "de"], %DataType.Array{type: %DataType.Blob{maxbytes: 10}})
+               DataType.validate(["abc", "de"], %DataType.Array{
+                 type: %DataType.Blob{maxbytes: 10}
+               })
     end
 
     test "array of enum" do
       members = %{"OFF" => 0, "ON" => 1}
 
       assert {:ok, [0, 1, 0]} =
-               DataType.validate(["OFF", "ON", "OFF"], %DataType.Array{type: %DataType.Enum{members: members}})
+               DataType.validate(["OFF", "ON", "OFF"], %DataType.Array{
+                 type: %DataType.Enum{members: members}
+               })
     end
 
     test "array of enum - invalid member" do
       members = %{"OFF" => 0, "ON" => 1}
 
       assert {:error, %Secant.Error{name: "BadValue"}} =
-               DataType.validate(["OFF", "MAYBE"], %DataType.Array{type: %DataType.Enum{members: members}})
+               DataType.validate(["OFF", "MAYBE"], %DataType.Array{
+                 type: %DataType.Enum{members: members}
+               })
     end
 
     test "array of struct" do
@@ -549,7 +574,8 @@ defmodule Secant.DataTypeTest do
 
   describe "encode_value/2" do
     test "enum encodes as integer" do
-      assert 100 = DataType.encode_value(100, %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
+      assert 100 =
+               DataType.encode_value(100, %DataType.Enum{members: %{"IDLE" => 100, "BUSY" => 300}})
     end
 
     test "double stays float" do
@@ -572,7 +598,9 @@ defmodule Secant.DataTypeTest do
       members = %{"OFF" => 0, "ON" => 1}
 
       assert [0, 1, 0] =
-               DataType.encode_value([0, 1, 0], %DataType.Array{type: %DataType.Enum{members: members}})
+               DataType.encode_value([0, 1, 0], %DataType.Array{
+                 type: %DataType.Enum{members: members}
+               })
     end
 
     test "array of int stays integer" do

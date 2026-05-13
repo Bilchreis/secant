@@ -65,7 +65,9 @@ defmodule Secant.Connection do
   defp handle_message({"read", spec, _data}, state) do
     response =
       case parse_module_param(spec, "value", state) do
-        {:error, err} -> error_response("read", spec, err)
+        {:error, err} ->
+          error_response("read", spec, err)
+
         {:ok, mod_name, param_name} ->
           result = ModServer.read(state.node_name, mod_name, param_name)
           build_response("reply", "read", spec, result)
@@ -77,7 +79,9 @@ defmodule Secant.Connection do
   defp handle_message({"change", spec, data}, state) do
     response =
       case parse_module_param(spec, nil, state) do
-        {:error, err} -> error_response("change", spec, err)
+        {:error, err} ->
+          error_response("change", spec, err)
+
         {:ok, mod_name, param_name} ->
           result = ModServer.write(state.node_name, mod_name, param_name, data)
           build_response("changed", "change", spec, result)
@@ -89,7 +93,9 @@ defmodule Secant.Connection do
   defp handle_message({"do", spec, data}, state) do
     response =
       case parse_module_param(spec, nil, state) do
-        {:error, err} -> error_response("do", spec, err)
+        {:error, err} ->
+          error_response("do", spec, err)
+
         {:ok, mod_name, cmd_name} ->
           result = ModServer.execute(state.node_name, mod_name, cmd_name, data)
           build_response("done", "do", spec, result)
@@ -191,6 +197,7 @@ defmodule Secant.Connection do
     do: {"error_#{action}", spec, [name, msg, %{}]}
 
   defp build_qualifiers(ts, nil), do: %{"t" => ts}
+
   defp build_qualifiers(ts, %Secant.Error{name: n, message: m}),
     do: %{"t" => ts, "error" => n, "message" => m}
 

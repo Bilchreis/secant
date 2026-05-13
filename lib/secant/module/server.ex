@@ -100,7 +100,6 @@ defmodule Secant.Module.Server do
       runtime_properties: runtime_properties
     }
 
-
     timer_ref = Process.send_after(self(), :poll, poll_interval_ms)
     {:ok, %{state | poll_timer_ref: timer_ref}}
   end
@@ -226,20 +225,12 @@ defmodule Secant.Module.Server do
   @impl true
   def handle_info(:poll, state) do
     new_state =
-      if function_exported?(state.module, :do_poll, 1) do
-        case state.module.do_poll(state.user_state) do
-          {:ok, new_user_state} ->
-            # The default do_poll calls read_<param> but doesn't update our cache —
-            # individual reads should be issued explicitly from do_poll and will
-            # go through handle_call(:read) or direct read helpers. For the
-            # default do_poll injected by the macro, we re-poll each readable param here.
-            poll_all_params(%{state | user_state: new_user_state})
+      case state.module.do_poll(state.user_state) do
+        {:ok, param_names, new_user_state} ->
+          poll_params(%{state | user_state: new_user_state}, param_names)
 
-          {:noreply, new_user_state} ->
-            %{state | user_state: new_user_state}
-        end
-      else
-        poll_all_params(state)
+        {:noreply, new_user_state} ->
+          %{state | user_state: new_user_state}
       end
 
     ref = Process.send_after(self(), :poll, new_state.poll_interval_ms)
@@ -251,23 +242,17 @@ defmodule Secant.Module.Server do
   defp atomize(name) when is_atom(name), do: name
   defp atomize(name) when is_binary(name), do: String.to_existing_atom(name)
 
-  defp poll_all_params(state) do
-    Enum.reduce(state.param_specs, state, fn {param_atom, _spec}, st ->
+  defp poll_params(state, param_names) do
+    Enum.reduce(param_names, state, fn param_atom, st ->
       read_fn = :"read_#{param_atom}"
 
       if function_exported?(st.module, read_fn, 1) do
         case apply(st.module, read_fn, [st.user_state]) do
           {:ok, value, new_user_state} ->
-            old = get_in(st.params, [param_atom, :value])
-
-            if value != old do
-              ns = update_cache(st, param_atom, value, nil)
-              ns = %{ns | user_state: new_user_state}
-              broadcast_update(ns, param_atom)
-              ns
-            else
-              %{st | user_state: new_user_state}
-            end
+            ns = update_cache(st, param_atom, value, nil)
+            ns = %{ns | user_state: new_user_state}
+            broadcast_update(ns, param_atom)
+            ns
 
           {:error, err, new_user_state} ->
             old_error = get_in(st.params, [param_atom, :error])
@@ -344,7 +329,9 @@ defmodule Secant.Module.Server do
   end
 
   defp build_qualifiers(ts, nil), do: %{"t" => ts}
-  defp build_qualifiers(ts, %Secant.Error{name: n, message: m}), do: %{"t" => ts, "error" => n, "message" => m}
+
+  defp build_qualifiers(ts, %Secant.Error{name: n, message: m}),
+    do: %{"t" => ts, "error" => n, "message" => m}
 
   defp build_report(value, datatype) do
     encoded = DataType.encode_value(value, datatype)
@@ -445,10 +432,10 @@ defmodule Secant.Module.Server do
     module_properties = Map.merge(compile_time_properties, state.runtime_properties)
 
     Map.merge(module_properties, %{
-      "description"       => state.description,
+      "description" => state.description,
       "interface_classes" => state.interface_classes,
-      "implementation"    => mod.__secant_implementation__(),
-      "accessibles"       => all_accessibles
+      "implementation" => mod.__secant_implementation__(),
+      "accessibles" => all_accessibles
     })
   end
 

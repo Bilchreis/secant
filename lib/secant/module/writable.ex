@@ -15,9 +15,10 @@ defmodule Secant.Module.Writable do
       end
   """
 
-  def required_params,   do: [:value, :status, :target]
+  def required_params, do: [:value, :status, :target]
   def required_commands, do: []
-  def class_list,        do: ["Writable", "Readable"]
+  def class_list, do: ["Writable", "Readable"]
+  def default_poll_params, do: [:value, :target, :status]
 
   def validate!(mod, params, commands) do
     Secant.Module.Readable.validate!(mod, params, commands)
@@ -27,7 +28,7 @@ defmodule Secant.Module.Writable do
   end
 
   defp validate_value_target_compatibility!(mod, param_map) do
-    value_type  = param_map |> Map.get(:value, %{}) |> Map.get(:datatype)
+    value_type = param_map |> Map.get(:value, %{}) |> Map.get(:datatype)
     target_type = param_map |> Map.get(:target, %{}) |> Map.get(:datatype)
 
     unless type_tag(value_type) == type_tag(target_type) do

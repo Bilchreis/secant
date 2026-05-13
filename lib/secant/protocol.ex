@@ -34,6 +34,7 @@ defmodule Secant.Protocol do
 
       [line, rest] ->
         line = String.trim_trailing(line, "\r")
+
         case parse_line(line) do
           {:ok, msg} -> {:ok, msg, rest}
           {:error, _} = err -> err

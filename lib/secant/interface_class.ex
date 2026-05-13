@@ -30,10 +30,10 @@ defmodule Secant.InterfaceClass do
         }
 
   defmacro __using__(opts) do
-    name            = Keyword.fetch!(opts, :name)
-    extends         = Keyword.fetch!(opts, :extends)
+    name = Keyword.fetch!(opts, :name)
+    extends = Keyword.fetch!(opts, :extends)
     requires_params = Keyword.get(opts, :requires_params, [])
-    requires_cmds   = Keyword.get(opts, :requires_commands, [])
+    requires_cmds = Keyword.get(opts, :requires_commands, [])
 
     quote do
       # Expose the interface spec as a function so it can be retrieved at

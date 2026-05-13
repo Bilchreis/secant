@@ -6,7 +6,7 @@ defmodule Secant.DiscoveryTest do
   defmodule EmptyModule do
     use Secant.Module
 
-    description "Empty test module"
+    description("Empty test module")
   end
 
   setup do
@@ -78,12 +78,13 @@ defmodule Secant.DiscoveryTest do
 
   describe "startup_broadcast option" do
     test "sends broadcast when startup_broadcast: true" do
-      {:ok, listener} = :gen_udp.open(@udp_port + 1, [
-        :binary,
-        {:active, false},
-        {:broadcast, true},
-        {:reuseaddr, true}
-      ])
+      {:ok, listener} =
+        :gen_udp.open(@udp_port + 1, [
+          :binary,
+          {:active, false},
+          {:broadcast, true},
+          {:reuseaddr, true}
+        ])
 
       # Start a fresh discovery on a different port with broadcast enabled
       broadcast_port = @udp_port + 1
