@@ -431,12 +431,20 @@ defmodule Secant.Module.Server do
 
     module_properties = Map.merge(compile_time_properties, state.runtime_properties)
 
-    Map.merge(module_properties, %{
+    features =
+      if function_exported?(mod, :__secant_features__, 0),
+        do: mod.__secant_features__(),
+        else: []
+
+    base = %{
       "description" => state.description,
       "interface_classes" => state.interface_classes,
       "implementation" => mod.__secant_implementation__(),
+      "features" => features,
       "accessibles" => all_accessibles
-    })
+    }
+
+    Map.merge(module_properties, base)
   end
 
   defp encode_properties(props) when is_map(props) do

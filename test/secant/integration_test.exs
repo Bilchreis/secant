@@ -623,6 +623,72 @@ defmodule Secant.IntegrationTest do
     assert mfc2["_manufacturer"] == "Bronkhorst"
   end
 
+  defmodule FeatureModule do
+    use Secant.Module.Readable
+
+    description("Module with features")
+    features(["has_target", "pausable"])
+
+    defparam(:value, %{description: "sensor reading", datatype: double(), readonly: true})
+
+    defparam(:status, %{
+      description: "module status",
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
+      readonly: true
+    })
+
+    @impl Secant.Module.Readable
+    def read_value(state), do: {:ok, 0.0, state}
+  end
+
+  test "declared features appear in describe output" do
+    node_opts = [
+      equipment_id: "features_node_#{:rand.uniform(10_000)}",
+      description: "features test node",
+      port: @port + 8,
+      modules: [{"sensor", FeatureModule}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :features_node)
+    Process.sleep(50)
+
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 8, [:binary, active: false, packet: :raw])
+
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    assert data["modules"]["sensor"]["features"] == ["has_target", "pausable"]
+  end
+
+  test "features key present as empty list when not declared" do
+    node_opts = [
+      equipment_id: "no_features_node_#{:rand.uniform(10_000)}",
+      description: "no features test node",
+      port: @port + 9,
+      modules: [{"temp", TempModule}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :no_features_node)
+    Process.sleep(50)
+
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 9, [:binary, active: false, packet: :raw])
+
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+    :gen_tcp.close(sock)
+
+    assert data["modules"]["temp"]["features"] == []
+  end
+
   # Helpers
 
   defp collect_lines(sock, count, timeout_ms) do
