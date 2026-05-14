@@ -98,6 +98,44 @@ defmodule Secant.ModuleTest do
     })
   end
 
+  defmodule TestWithPollinterval do
+    use Secant.Module.Readable
+
+    description("Readable with pollinterval")
+    pollinterval(10.0)
+
+    defparam(:value, %{description: "reading", datatype: double(), readonly: true})
+
+    defparam(:status, %{
+      description: "module status",
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
+      readonly: true
+    })
+  end
+
+  defmodule TestWithDefaultPollinterval do
+    use Secant.Module.Readable
+
+    description("Readable with default pollinterval")
+    pollinterval()
+
+    defparam(:value, %{description: "reading", datatype: double(), readonly: true})
+
+    defparam(:status, %{
+      description: "module status",
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
+      readonly: true
+    })
+  end
+
   defmodule TestWithFeatures do
     use Secant.Module.Readable
 
@@ -418,6 +456,28 @@ defmodule Secant.ModuleTest do
         end
         """)
       end
+    end
+  end
+
+  describe "pollinterval macro" do
+    test "pollinterval/1 registers the param with given default" do
+      params = Map.new(TestWithPollinterval.__secant_params__())
+      assert Map.has_key?(params, :pollinterval)
+      spec = params[:pollinterval]
+      assert spec.default == 10.0
+      assert spec.readonly == false
+      assert spec.datatype == %Secant.DataType.Double{min: 0, unit: "s"}
+    end
+
+    test "pollinterval/0 uses 5.0 as default" do
+      params = Map.new(TestWithDefaultPollinterval.__secant_params__())
+      assert Map.has_key?(params, :pollinterval)
+      assert params[:pollinterval].default == 5.0
+    end
+
+    test "pollinterval param is not readonly" do
+      params = Map.new(TestWithPollinterval.__secant_params__())
+      refute params[:pollinterval].readonly
     end
   end
 

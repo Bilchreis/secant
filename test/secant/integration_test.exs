@@ -623,6 +623,29 @@ defmodule Secant.IntegrationTest do
     assert mfc2["_manufacturer"] == "Bronkhorst"
   end
 
+  defmodule PollintervalModule do
+    use Secant.Module.Readable
+
+    description("Module with pollinterval")
+    pollinterval(2.0)
+
+    defparam(:value, %{description: "reading", datatype: double(), readonly: true, default: 0.0})
+
+    defparam(:status, %{
+      description: "module status",
+      datatype:
+        tuple([
+          enum(%{"DISABLED" => 0, "IDLE" => 100, "WARN" => 200, "BUSY" => 300, "ERROR" => 400}),
+          string()
+        ]),
+      readonly: true,
+      default: [100, ""]
+    })
+
+    @impl Secant.Module.Readable
+    def read_value(state), do: {:ok, 0.0, state}
+  end
+
   defmodule FeatureModule do
     use Secant.Module.Readable
 
@@ -665,6 +688,42 @@ defmodule Secant.IntegrationTest do
     :gen_tcp.close(sock)
 
     assert data["modules"]["sensor"]["features"] == ["has_target", "pausable"]
+  end
+
+  test "pollinterval appears as writable param in describe" do
+    node_opts = [
+      equipment_id: "pollinterval_node_#{:rand.uniform(10_000)}",
+      description: "pollinterval test node",
+      port: @port + 10,
+      modules: [{"sensor", PollintervalModule}],
+      discovery: false
+    ]
+
+    start_supervised!({Secant.Node, node_opts}, id: :pollinterval_node)
+    Process.sleep(50)
+
+    {:ok, sock} =
+      :gen_tcp.connect(~c"127.0.0.1", @port + 10, [:binary, active: false, packet: :raw])
+
+    :gen_tcp.send(sock, "describe\n")
+    {_, _, data} = parse_response(recv_line(sock))
+
+    pi = data["modules"]["sensor"]["accessibles"]["pollinterval"]
+    assert pi["readonly"] == false
+    assert pi["datainfo"]["type"] == "double"
+    assert pi["datainfo"]["min"] == 0
+    assert pi["datainfo"]["unit"] == "s"
+
+    :gen_tcp.send(sock, "read sensor:pollinterval\n")
+    {_, _, [value, _]} = parse_response(recv_line(sock))
+    assert value == 2.0
+
+    :gen_tcp.send(sock, "change sensor:pollinterval 1.0\n")
+    {action, _, [new_val, _]} = parse_response(recv_line(sock))
+    assert action == "changed"
+    assert new_val == 1.0
+
+    :gen_tcp.close(sock)
   end
 
   test "features key present as empty list when not declared" do
