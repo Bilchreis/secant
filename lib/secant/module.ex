@@ -117,7 +117,9 @@ defmodule Secant.Module do
           defproperty: 2,
           description: 1,
           features: 1,
-          implementation: 1
+          implementation: 1,
+          pollinterval: 0,
+          pollinterval: 1
         ]
 
       import Secant.DataType
@@ -178,6 +180,18 @@ defmodule Secant.Module do
   defmacro implementation(string) do
     quote do
       @secant_implementation unquote(string)
+    end
+  end
+
+  defmacro pollinterval(default \\ 5.0) do
+    quote do
+      @secant_params {:pollinterval,
+                      %{
+                        description: "seconds between polls",
+                        datatype: %Secant.DataType.Double{min: 0, unit: "s"},
+                        readonly: false,
+                        default: unquote(default)
+                      }}
     end
   end
 
